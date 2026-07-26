@@ -30,7 +30,7 @@ export default function LoginPage() {
   return (
     <main className="flex-1 flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm">
-        <h1 className="font-serif text-3xl mb-1">Welcome back</h1>
+        <h1 className="font-display text-3xl mb-1">Welcome back</h1>
         <p className="text-muted text-sm mb-8">Log in to send and track invoices.</p>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
@@ -41,7 +41,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded-md border border-line bg-card px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent"
+              className="rounded-xl border border-line bg-card px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
@@ -51,7 +51,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="rounded-md border border-line bg-card px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent"
+              className="rounded-xl border border-line bg-card px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </label>
 
@@ -60,7 +60,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 rounded-md bg-accent text-accent-contrast font-medium py-2.5 disabled:opacity-60"
+            className="mt-2 rounded-full bg-accent text-accent-contrast font-display font-bold py-3.5 disabled:opacity-60"
           >
             {loading ? "Logging in…" : "Log in"}
           </button>

@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Inter, Fraunces } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
@@ -8,15 +8,25 @@ const body = Inter({
   subsets: ["latin"],
 });
 
-const display = Fraunces({
-  variable: "--font-display",
+const heading = Manrope({
+  variable: "--font-heading",
   subsets: ["latin"],
-  weight: ["500", "600"],
+  weight: ["700", "800"],
 });
 
 export const metadata: Metadata = {
   title: "Checkout — Get paid by invoice",
   description: "Send invoices, get paid, keep your own Stripe payouts.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#121212" },
+  ],
 };
 
 export default function RootLayout({
@@ -25,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${body.variable} ${display.variable} h-full antialiased`}>
+    <html lang="en" className={`${body.variable} ${heading.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
         <Providers>{children}</Providers>
       </body>

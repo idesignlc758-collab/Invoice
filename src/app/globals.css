@@ -1,16 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f0f2ec;
-  --foreground: #15201a;
-  --muted: #5c685f;
-  --card: #fafbf7;
-  --line: #d7dcd1;
-  --accent: #1e6e55;
+  --background: #ffffff;
+  --foreground: #141414;
+  --muted: #6b6b6b;
+  --card: #f7f7f7;
+  --line: #e5e5e5;
+  --accent: #c81010;
   --accent-contrast: #ffffff;
-  --gold: #b9812e;
-  --gold-soft: #f3e3c6;
-  --danger: #a13f2e;
+  --success: #1e7a4c;
+  --success-soft: #e1f3e8;
+  --pending: #8a5b17;
+  --pending-soft: #fbebd2;
+  --danger: #8c241c;
+  --danger-soft: #f5e2df;
 }
 
 @theme inline {
@@ -21,26 +24,64 @@
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-accent-contrast: var(--accent-contrast);
-  --color-gold: var(--gold);
-  --color-gold-soft: var(--gold-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-pending: var(--pending);
+  --color-pending-soft: var(--pending-soft);
   --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
   --font-sans: var(--font-body);
-  --font-serif: var(--font-display);
+  --font-display: var(--font-heading);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #12180f;
-    --foreground: #e7ece3;
-    --muted: #93a08d;
-    --card: #182018;
-    --line: #2b342a;
-    --accent: #49b693;
-    --accent-contrast: #0e2019;
-    --gold: #e3ae5e;
-    --gold-soft: #3a2e17;
-    --danger: #e08669;
+    --background: #121212;
+    --foreground: #f2f2f2;
+    --muted: #a3a3a3;
+    --card: #1c1c1c;
+    --line: #2e2e2e;
+    --accent: #d33d35;
+    --accent-contrast: #ffffff;
+    --success: #3fcb86;
+    --success-soft: #163524;
+    --pending: #e3a748;
+    --pending-soft: #3a2c14;
+    --danger: #d1776f;
+    --danger-soft: #3a211d;
   }
+}
+
+:root[data-theme="dark"] {
+  --background: #121212;
+  --foreground: #f2f2f2;
+  --muted: #a3a3a3;
+  --card: #1c1c1c;
+  --line: #2e2e2e;
+  --accent: #e5423a;
+  --accent-contrast: #ffffff;
+  --success: #3fcb86;
+  --success-soft: #163524;
+  --pending: #e3a748;
+  --pending-soft: #3a2c14;
+  --danger: #c24a3f;
+  --danger-soft: #3a211d;
+}
+
+:root[data-theme="light"] {
+  --background: #ffffff;
+  --foreground: #141414;
+  --muted: #6b6b6b;
+  --card: #f7f7f7;
+  --line: #e5e5e5;
+  --accent: #c81010;
+  --accent-contrast: #ffffff;
+  --success: #1e7a4c;
+  --success-soft: #e1f3e8;
+  --pending: #8a5b17;
+  --pending-soft: #fbebd2;
+  --danger: #8c241c;
+  --danger-soft: #f5e2df;
 }
 
 body {
@@ -49,5 +90,12 @@ body {
 }
 
 ::selection {
-  background: var(--gold-soft);
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }

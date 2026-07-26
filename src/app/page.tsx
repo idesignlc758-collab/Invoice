@@ -12,7 +12,7 @@ export default async function HomePage() {
         <p className="font-mono text-xs uppercase tracking-wider text-accent mb-4">
           Invoices, on Stripe
         </p>
-        <h1 className="font-serif text-4xl leading-tight mb-4 text-balance">
+        <h1 className="font-display text-4xl leading-tight mb-4 text-balance">
           Send an invoice. Get paid. Keep your own payouts.
         </h1>
         <p className="text-muted mb-8">
