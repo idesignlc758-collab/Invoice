@@ -1,0 +1,51 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String
+  stripeAccountId  String?   @unique
+  onboardingStatus String    @default("not_started") // not_started | pending | ready
+  createdAt        DateTime  @default(now())
+  invoices         Invoice[]
+}
+
+model Invoice {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id])
+  stripeInvoiceId  String    @unique
+  stripeCustomerId String
+  clientEmail      String
+  clientName       String?
+  description      String
+  amount           Int // total, in cents
+  feeAmount        Int // platform fee, in cents
+  currency         String    @default("usd")
+  status           String    @default("draft") // draft | open | paid | void | uncollectible | payment_failed
+  hostedInvoiceUrl String?
+  dueDate          DateTime?
+  paidAt           DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model WebhookEvent {
+  id            String   @id @default(cuid())
+  stripeEventId String   @unique
+  type          String
+  processedAt   DateTime @default(now())
+}
