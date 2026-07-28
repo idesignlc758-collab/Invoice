@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { stripe } from "@/lib/stripe";
 
 // TEMPORARY diagnostic route — reports only whether each expected env var is
 // present and how long it is. Never returns actual values. Remove after use.
@@ -45,5 +46,25 @@ export async function GET() {
     };
   }
 
-  return NextResponse.json({ env: report, database });
+  // Read-only call that proves the key actually authenticates, and reports the
+  // platform's own country — which decides which connected-account countries
+  // are reachable. Creates nothing and moves no money.
+  let stripeCheck: Record<string, unknown>;
+  try {
+    const account = await stripe.accounts.retrieve(null);
+    stripeCheck = {
+      ok: true,
+      platformAccountId: account.id,
+      country: account.country,
+      chargesEnabled: account.charges_enabled,
+      payoutsEnabled: account.payouts_enabled,
+    };
+  } catch (err) {
+    stripeCheck = {
+      ok: false,
+      error: (err instanceof Error ? err.message : String(err)).slice(0, 300),
+    };
+  }
+
+  return NextResponse.json({ env: report, database, stripe: stripeCheck });
 }
