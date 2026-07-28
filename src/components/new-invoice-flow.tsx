@@ -6,9 +6,9 @@ import { Keypad } from "@/components/keypad";
 import { formatCents, initials } from "@/lib/format";
 
 const PLATFORM_FEE_PERCENT = 5;
-const JOB_PRESETS = ["Ride", "Delivery", "Hourly", "Custom"];
+const JOB_PRESETS = ["Service", "Product", "Hourly", "Custom"];
 const DUE_PRESETS = [
-  { label: "On receipt", days: 0 },
+  { label: "Pay now", days: 0 },
   { label: "7 days", days: 7 },
   { label: "14 days", days: 14 },
   { label: "30 days", days: 30 },
@@ -140,45 +140,47 @@ export function NewInvoiceFlow({
     </div>
   );
 
-  const dueLabel = DUE_PRESETS.find((preset) => preset.days === dueInDays)?.label ?? "On receipt";
+  const dueLabel = DUE_PRESETS.find((preset) => preset.days === dueInDays)?.label ?? "Pay now";
 
-  // Optional fields stay collapsed so the common case — amount, who, what —
-  // is still three taps on a phone.
+  // Payment terms are core to any invoice, so these stay visible. Only the
+  // genuinely optional client name hides behind "+ Add details", keeping the
+  // common case fast on a phone.
+  const dueChips = (
+    <div className="mb-4">
+      <p className="text-xs uppercase tracking-wide text-muted mb-2">Payment due</p>
+      <div className="flex gap-2 flex-wrap">
+        {DUE_PRESETS.map((preset) => (
+          <button
+            key={preset.days}
+            type="button"
+            onClick={() => setDueInDays(preset.days)}
+            className={`rounded-full px-4 py-2 text-sm font-medium border ${
+              dueInDays === preset.days
+                ? "bg-accent text-accent-contrast border-accent"
+                : "bg-card text-foreground border-line"
+            }`}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   const renderDetails = (inputBg: string) =>
     showDetails ? (
-      <div className="flex flex-col gap-4 mb-4">
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span>
-            Client name <span className="text-muted">(optional)</span>
-          </span>
-          <input
-            type="text"
-            value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
-            placeholder="Sam Rivera"
-            className={`rounded-xl border border-line ${inputBg} px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent`}
-          />
-        </label>
-        <div>
-          <p className="text-xs uppercase tracking-wide text-muted mb-2">Payment due</p>
-          <div className="flex gap-2 flex-wrap">
-            {DUE_PRESETS.map((preset) => (
-              <button
-                key={preset.days}
-                type="button"
-                onClick={() => setDueInDays(preset.days)}
-                className={`rounded-full px-4 py-2 text-sm font-medium border ${
-                  dueInDays === preset.days
-                    ? "bg-accent text-accent-contrast border-accent"
-                    : "bg-card text-foreground border-line"
-                }`}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <label className="flex flex-col gap-1.5 text-sm mb-4">
+        <span>
+          Client name <span className="text-muted">(optional)</span>
+        </span>
+        <input
+          type="text"
+          value={clientName}
+          onChange={(e) => setClientName(e.target.value)}
+          placeholder="Sam Rivera"
+          className={`rounded-xl border border-line ${inputBg} px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent`}
+        />
+      </label>
     ) : (
       <button
         type="button"
@@ -323,7 +325,7 @@ export function NewInvoiceFlow({
                 inputMode="email"
                 value={clientEmail}
                 onChange={(e) => setClientEmail(e.target.value)}
-                placeholder="rider@example.com"
+                placeholder="client@example.com"
                 className="rounded-xl border border-line bg-card px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </label>
@@ -333,12 +335,13 @@ export function NewInvoiceFlow({
               <input
                 type="text"
                 autoFocus
-                placeholder="Describe the job"
+                placeholder="What are you billing for?"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="rounded-xl border border-line bg-card px-4 py-3 text-base mb-4 focus:outline-none focus:ring-2 focus:ring-accent"
               />
             )}
+            {dueChips}
             {renderDetails("bg-card")}
             <div className="flex-1" />
             <button
@@ -437,7 +440,7 @@ export function NewInvoiceFlow({
                   required
                   value={clientEmail}
                   onChange={(e) => setClientEmail(e.target.value)}
-                  placeholder="rider@example.com"
+                  placeholder="client@example.com"
                   className="rounded-xl border border-line bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </label>
@@ -447,13 +450,14 @@ export function NewInvoiceFlow({
               {jobPreset === "Custom" && (
                 <input
                   type="text"
-                  placeholder="Describe the job"
+                  placeholder="What are you billing for?"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="rounded-xl border border-line bg-background px-4 py-3 text-base mb-4 focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               )}
 
+              {dueChips}
               <div className="flex flex-col">{renderDetails("bg-background")}</div>
 
               <div className="my-5">{feeBreakdown}</div>
