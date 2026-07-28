@@ -11,6 +11,12 @@ export async function GET() {
     "CLERK_SECRET_KEY",
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_WEBHOOK_SECRET_CONNECT",
+    "NEXT_PUBLIC_APP_URL",
+    "MAILTRAP_HOST",
+    "MAILTRAP_PORT",
+    "MAILTRAP_USER",
+    "MAILTRAP_PASS",
   ];
 
   const report = Object.fromEntries(
