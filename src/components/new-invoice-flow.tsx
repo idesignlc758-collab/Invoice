@@ -212,20 +212,21 @@ export function NewInvoiceFlow({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What are you billing for?"
-            className={`min-w-0 flex-1 rounded-lg border border-line ${inputBg} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent`}
+            className={`min-w-0 flex-1 rounded-lg border border-line ${inputBg} px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent`}
           />
           <div
-            className={`flex min-w-0 items-center rounded-lg border border-line ${inputBg} px-3 py-2 focus-within:ring-2 focus-within:ring-accent`}
+            className={`flex min-w-0 items-center rounded-lg border border-line ${inputBg} px-3 py-2.5 focus-within:ring-2 focus-within:ring-accent`}
           >
-            <span className="mr-1 text-sm text-muted">$</span>
+            <span className="mr-1 text-base text-muted">$</span>
             <input
               type="number"
+              inputMode="decimal"
               min="0"
               step="0.01"
               placeholder="0.00"
               value={cents === 0 ? "" : (cents / 100).toString()}
               onChange={(e) => setCents(Math.max(0, Math.round(Number(e.target.value || 0) * 100)))}
-              className="min-w-0 flex-1 bg-transparent text-sm tabular-nums focus:outline-none"
+              className="min-w-0 flex-1 bg-transparent text-base tabular-nums focus:outline-none"
             />
           </div>
         </div>
@@ -238,13 +239,13 @@ export function NewInvoiceFlow({
                 value={item.description}
                 onChange={(e) => updateExtraItem(item.id, { description: e.target.value })}
                 placeholder="Description"
-                className={`min-w-0 flex-1 rounded-lg border border-line ${inputBg} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent`}
+                className={`min-w-0 flex-1 rounded-lg border border-line ${inputBg} px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent`}
               />
               <button
                 type="button"
                 onClick={() => removeExtraItem(item.id)}
                 aria-label={`Remove ${item.description || "item"}`}
-                className="px-2 text-muted hover:text-danger"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-danger"
               >
                 ✕
               </button>
@@ -254,6 +255,7 @@ export function NewInvoiceFlow({
                 Qty
                 <input
                   type="number"
+                  inputMode="numeric"
                   min="1"
                   value={item.quantity}
                   onChange={(e) =>
@@ -261,15 +263,16 @@ export function NewInvoiceFlow({
                       quantity: Math.max(1, Math.round(Number(e.target.value) || 1)),
                     })
                   }
-                  className={`w-14 rounded-lg border border-line ${inputBg} px-2 py-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-accent`}
+                  className={`w-16 rounded-lg border border-line ${inputBg} px-2 py-2.5 text-base tabular-nums focus:outline-none focus:ring-2 focus:ring-accent`}
                 />
               </label>
               <div
-                className={`flex min-w-0 flex-1 items-center rounded-lg border border-line ${inputBg} px-3 py-2 focus-within:ring-2 focus-within:ring-accent`}
+                className={`flex min-w-0 flex-1 items-center rounded-lg border border-line ${inputBg} px-3 py-2.5 focus-within:ring-2 focus-within:ring-accent`}
               >
-                <span className="mr-1 text-sm text-muted">$</span>
+                <span className="mr-1 text-base text-muted">$</span>
                 <input
                   type="number"
+                  inputMode="decimal"
                   min="0"
                   step="0.01"
                   placeholder="0.00"
@@ -279,17 +282,21 @@ export function NewInvoiceFlow({
                       unitCents: Math.max(0, Math.round(Number(e.target.value || 0) * 100)),
                     })
                   }
-                  className="min-w-0 flex-1 bg-transparent text-sm tabular-nums focus:outline-none"
+                  className="min-w-0 flex-1 bg-transparent text-base tabular-nums focus:outline-none"
                 />
               </div>
-              <span className="w-20 shrink-0 text-right text-sm tabular-nums">
+              <span className="hidden w-20 shrink-0 text-right text-sm tabular-nums sm:block">
                 {formatCents(item.quantity * item.unitCents)}
               </span>
             </div>
           </div>
         ))}
       </div>
-      <button type="button" onClick={addExtraItem} className="text-sm font-medium text-accent">
+      <button
+        type="button"
+        onClick={addExtraItem}
+        className="min-h-11 px-1 text-sm font-medium text-accent"
+      >
         + Add item
       </button>
     </div>
@@ -303,6 +310,7 @@ export function NewInvoiceFlow({
       >
         <input
           type="number"
+          inputMode="decimal"
           min="0"
           max="100"
           step="0.01"
@@ -311,7 +319,7 @@ export function NewInvoiceFlow({
           onChange={(e) =>
             setTaxPercent(Math.min(100, Math.max(0, Number(e.target.value) || 0)))
           }
-          className="min-w-0 flex-1 bg-transparent text-right text-sm tabular-nums focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent text-right text-base tabular-nums focus:outline-none"
         />
         <span className="ml-1 text-muted">%</span>
       </div>

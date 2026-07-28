@@ -104,7 +104,7 @@ export default async function DashboardPage({
 
       <div className="flex-1 min-w-0">
         {/* ---------- Mobile ---------- */}
-        <main className="md:hidden flex flex-col max-w-md mx-auto w-full px-6 py-8 pb-28">
+        <main className="md:hidden flex flex-col max-w-md mx-auto w-full px-6 py-8 pb-32">
           <div className="flex items-center justify-between mb-6">
             <span className="font-display text-lg font-bold">Checkout</span>
             <SignOutButton />
@@ -160,7 +160,7 @@ export default async function DashboardPage({
           )}
 
           {isReady && (
-            <div className="fixed bottom-0 inset-x-0 border-t border-line bg-background/95 backdrop-blur px-6 py-4">
+            <div className="fixed bottom-0 inset-x-0 border-t border-line bg-background/95 backdrop-blur px-6 pt-4 pb-safe">
               <Link
                 href="/invoices/new"
                 className="block w-full max-w-md mx-auto text-center rounded-full bg-accent text-accent-contrast font-display font-bold py-4"
