@@ -75,13 +75,13 @@ export default async function HomePage() {
         <nav className="flex items-center gap-2 text-sm">
           <Link
             href="/login"
-            className="rounded-full px-4 py-2 font-medium text-muted transition-colors hover:text-foreground"
+            className="flex min-h-11 items-center rounded-full px-4 font-medium text-muted transition-colors hover:text-foreground"
           >
             Log in
           </Link>
           <Link
             href="/signup"
-            className="rounded-full bg-foreground px-4 py-2 font-medium text-background"
+            className="flex min-h-11 items-center rounded-full bg-foreground px-4 font-medium text-background"
           >
             Get started
           </Link>
@@ -149,11 +149,17 @@ export default async function HomePage() {
       <footer className="border-t border-line">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-xs text-muted sm:flex-row">
           <p>© {new Date().getFullYear()} iDesignLC Agency</p>
-          <nav className="flex items-center gap-6">
-            <Link href="/terms" className="transition-colors hover:text-foreground">
+          <nav className="flex items-center gap-4">
+            <Link
+              href="/terms"
+              className="flex min-h-11 items-center px-2 transition-colors hover:text-foreground"
+            >
               Terms of Service
             </Link>
-            <Link href="/refunds" className="transition-colors hover:text-foreground">
+            <Link
+              href="/refunds"
+              className="flex min-h-11 items-center px-2 transition-colors hover:text-foreground"
+            >
               Refund Policy
             </Link>
           </nav>
