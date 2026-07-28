@@ -31,6 +31,16 @@ export function Sidebar() {
       </nav>
 
       <div className="flex-1" />
+
+      <nav className="flex flex-col gap-1 text-xs mb-4 border-t border-line pt-4">
+        <Link href="/terms" className="px-3 py-1.5 text-muted hover:text-foreground">
+          Terms of Service
+        </Link>
+        <Link href="/refunds" className="px-3 py-1.5 text-muted hover:text-foreground">
+          Refund Policy
+        </Link>
+      </nav>
+
       <SignOutButton />
     </aside>
   );

@@ -33,6 +33,15 @@ export default async function HomePage() {
             Log in
           </Link>
         </div>
+
+        <nav className="mt-16 flex items-center justify-center gap-6 text-xs text-muted">
+          <Link href="/terms" className="hover:text-foreground">
+            Terms of Service
+          </Link>
+          <Link href="/refunds" className="hover:text-foreground">
+            Refund Policy
+          </Link>
+        </nav>
       </div>
     </main>
   );
