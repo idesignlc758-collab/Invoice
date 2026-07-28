@@ -15,8 +15,9 @@ const heading = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Checkout — Get paid by invoice",
-  description: "Send invoices, get paid, keep your own Stripe payouts.",
+  title: "Invoice by iDesignLC — Send an invoice, get paid",
+  description:
+    "Bill a client from your phone in seconds. They pay by card, the money lands in your own bank account.",
 };
 
 export const viewport: Viewport = {
