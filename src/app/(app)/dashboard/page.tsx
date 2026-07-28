@@ -65,25 +65,25 @@ export default async function DashboardPage({
       )}
 
       <form action="/api/connect/onboard" method="POST" className="flex flex-wrap items-end gap-3">
-        {!user.stripeAccountId && (
-          <label className="flex flex-col gap-1.5 text-sm">
-            Where is your business based?
-            <select
-              name="country"
-              defaultValue="US"
-              className="rounded-xl border border-line bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              {CONNECT_COUNTRIES.map((country) => (
-                <option key={country.code} value={country.code}>
-                  {country.name}
-                </option>
-              ))}
-            </select>
-            <span className="text-xs text-muted">
-              This can&apos;t be changed later — Stripe locks it to the account.
-            </span>
-          </label>
-        )}
+        <label className="flex flex-col gap-1.5 text-sm">
+          Where is your business based?
+          <select
+            name="country"
+            defaultValue="US"
+            className="rounded-xl border border-line bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent"
+          >
+            {CONNECT_COUNTRIES.map((country) => (
+              <option key={country.code} value={country.code}>
+                {country.name}
+              </option>
+            ))}
+          </select>
+          <span className="text-xs text-muted">
+            {user.stripeAccountId
+              ? "Changing this starts a new Stripe account — the country can't be edited once setup is finished."
+              : "Stripe locks this to the account, so it can't be changed later."}
+          </span>
+        </label>
         <button
           type="submit"
           className="rounded-full bg-accent text-accent-contrast font-display font-bold px-5 py-3 text-sm"

@@ -12,6 +12,21 @@ async function createOnboardingRedirect(requestedCountry?: string) {
 
   let accountId = user.stripeAccountId;
 
+  // Country is immutable on a Stripe account. If someone picked the wrong one
+  // and never finished onboarding, the only way out is a fresh account — so
+  // detach the old one rather than leaving them permanently stuck.
+  if (accountId && requestedCountry && isSupportedCountry(requestedCountry)) {
+    try {
+      const existing = await stripe.accounts.retrieve(accountId);
+      if (existing.country !== requestedCountry && !existing.charges_enabled) {
+        accountId = null;
+      }
+    } catch {
+      // Unreadable (deleted upstream, or created with a different key).
+      accountId = null;
+    }
+  }
+
   if (!accountId) {
     // A connected account's country is permanent, so it has to be chosen
     // before the account exists — Stripe's hosted onboarding can't change it.
