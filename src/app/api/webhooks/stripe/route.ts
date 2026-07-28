@@ -11,16 +11,32 @@ export async function POST(request: Request) {
   const body = await request.text();
   const signature = request.headers.get("stripe-signature");
 
-  if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
+  // Connect platforms need two event destinations pointing here: one scoped to
+  // this account (invoice.*) and one scoped to connected accounts
+  // (account.updated). Stripe issues a separate signing secret per destination,
+  // so try each until one verifies.
+  const secrets = [
+    process.env.STRIPE_WEBHOOK_SECRET,
+    process.env.STRIPE_WEBHOOK_SECRET_CONNECT,
+  ].filter((secret): secret is string => Boolean(secret));
+
+  if (!signature || secrets.length === 0) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 
-  let event: Stripe.Event;
-  try {
-    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Invalid signature";
-    return NextResponse.json({ error: message }, { status: 400 });
+  let event: Stripe.Event | undefined;
+  let verifyError = "Invalid signature";
+  for (const secret of secrets) {
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, secret);
+      break;
+    } catch (err) {
+      verifyError = err instanceof Error ? err.message : "Invalid signature";
+    }
+  }
+
+  if (!event) {
+    return NextResponse.json({ error: verifyError }, { status: 400 });
   }
 
   try {

@@ -33,7 +33,7 @@ in the plan artifact shared alongside this repo.
    Fill in:
    - `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` — from a [Turso](https://turso.tech) database (`turso db create`, `turso db tokens create`)
    - `STRIPE_SECRET_KEY` — from your [test-mode API keys](https://dashboard.stripe.com/test/apikeys)
-   - `STRIPE_WEBHOOK_SECRET` — see below
+   - `STRIPE_WEBHOOK_SECRET` / `STRIPE_WEBHOOK_SECRET_CONNECT` — see below
    - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` — from your [Clerk dashboard](https://dashboard.clerk.com) API Keys page
    - `MAILTRAP_*` — from your Mailtrap sending/sandbox inbox
    - `NEXT_PUBLIC_APP_URL` — `http://localhost:3000` for local dev
@@ -96,3 +96,10 @@ in the plan artifact shared alongside this repo.
 - Going live means switching `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` to
   live-mode values and updating the webhook endpoint in the Stripe Dashboard
   to point at your deployed URL.
+- Connect splits events across two scopes, so production needs **two event
+  destinations pointing at the same `/api/webhooks/stripe` URL**: one scoped to
+  *Your account* for `invoice.paid` / `invoice.payment_failed` (invoices are
+  created on the platform with `transfer_data`/`on_behalf_of`), and one scoped
+  to *Connected accounts* for `account.updated`. Stripe issues a separate
+  signing secret per destination — put them in `STRIPE_WEBHOOK_SECRET` and
+  `STRIPE_WEBHOOK_SECRET_CONNECT`; the handler tries both.
