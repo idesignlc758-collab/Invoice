@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { formatCents, initials } from "@/lib/format";
 import { StatusPill } from "@/components/status-pill";
 
@@ -27,6 +29,7 @@ const FILTERS = [
 ] as const;
 
 export function InvoiceTable({ invoices }: { invoices: Invoice[] }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("all");
 
@@ -90,13 +93,23 @@ export function InvoiceTable({ invoices }: { invoices: Invoice[] }) {
             </thead>
             <tbody>
               {filtered.map((invoice) => (
-                <tr key={invoice.id} className="border-b border-line last:border-0">
+                <tr
+                  key={invoice.id}
+                  onClick={() => router.push(`/invoices/${invoice.id}`)}
+                  className="cursor-pointer border-b border-line last:border-0 hover:bg-line/30"
+                >
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2.5">
                       <span className="w-8 h-8 flex-shrink-0 rounded-full bg-background border border-line flex items-center justify-center font-display font-bold text-xs">
                         {initials(invoice.clientName, invoice.clientEmail)}
                       </span>
-                      <span className="truncate">{invoice.clientName || invoice.clientEmail}</span>
+                      <Link
+                        href={`/invoices/${invoice.id}`}
+                        className="truncate hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {invoice.clientName || invoice.clientEmail}
+                      </Link>
                     </div>
                   </td>
                   <td className="px-5 py-3 text-muted">{invoice.description}</td>

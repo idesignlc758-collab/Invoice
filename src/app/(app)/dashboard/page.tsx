@@ -106,7 +106,9 @@ export default async function DashboardPage({
         {/* ---------- Mobile ---------- */}
         <main className="md:hidden flex flex-col max-w-md mx-auto w-full px-6 py-8 pb-32">
           <div className="flex items-center justify-between mb-6">
-            <span className="font-display text-lg font-bold">Checkout</span>
+            <span className="font-display text-lg font-extrabold tracking-tight">
+              Invoice<span className="text-accent">.</span>
+            </span>
             <SignOutButton />
           </div>
 
@@ -125,7 +127,7 @@ export default async function DashboardPage({
                   rel="noopener noreferrer"
                   className="text-sm text-accent font-medium"
                 >
-                  View your Stripe dashboard ↗
+                  View your Stripe dashboard {"↗︎"}
                 </a>
               </section>
 
@@ -137,9 +139,10 @@ export default async function DashboardPage({
                   </p>
                 )}
                 {user.invoices.map((invoice) => (
-                  <div
+                  <Link
                     key={invoice.id}
-                    className="rounded-2xl border border-line bg-card p-4 flex items-center justify-between gap-4"
+                    href={`/invoices/${invoice.id}`}
+                    className="rounded-2xl border border-line bg-card p-4 flex items-center justify-between gap-4 active:bg-line/40 transition-colors"
                   >
                     <div className="min-w-0">
                       <p className="font-medium truncate">{invoice.description}</p>
@@ -153,7 +156,7 @@ export default async function DashboardPage({
                       </span>
                       <StatusPill status={invoice.status} />
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </section>
             </>
@@ -250,7 +253,7 @@ export default async function DashboardPage({
                   rel="noopener noreferrer"
                   className="text-sm text-accent font-medium"
                 >
-                  View your Stripe dashboard ↗
+                  View your Stripe dashboard {"↗︎"}
                 </a>
               </div>
 

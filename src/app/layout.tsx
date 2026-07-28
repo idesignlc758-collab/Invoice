@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   title: "Invoice by iDesignLC — Send an invoice, get paid",
   description:
     "Bill a client from your phone in seconds. They pay by card, the money lands in your own bank account.",
+  other: {
+    // Stops iOS Safari turning client emails and amounts into blue underlined
+    // "helpful" links inside our own list rows.
+    "format-detection": "telephone=no, date=no, address=no, email=no",
+  },
 };
 
 export const viewport: Viewport = {

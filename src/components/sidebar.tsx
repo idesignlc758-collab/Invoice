@@ -26,7 +26,7 @@ export function Sidebar() {
           rel="noopener noreferrer"
           className="rounded-lg px-3 py-2 font-medium text-muted hover:text-foreground"
         >
-          Stripe dashboard ↗
+          Stripe dashboard {"↗︎"}
         </a>
       </nav>
 
