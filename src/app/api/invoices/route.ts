@@ -120,10 +120,13 @@ export async function POST(request: Request) {
     days_until_due: dueInDays,
     pending_invoice_items_behavior: "include",
     default_tax_rates: taxRateIds,
+    // The platform is the merchant of record: it collects the card payment,
+    // keeps application_fee_amount, and transfers the remainder onward. No
+    // on_behalf_of or issuer, because those make the connected account the
+    // settlement merchant — which requires the card_payments capability and
+    // rules out every `recipient` service agreement country.
     transfer_data: { destination: acct },
     application_fee_amount: feeCents,
-    on_behalf_of: acct,
-    issuer: { type: "account", account: acct },
   });
 
   await stripe.invoices.finalizeInvoice(invoice.id!);

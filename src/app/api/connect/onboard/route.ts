@@ -35,12 +35,16 @@ async function createOnboardingRedirect(requestedCountry?: string) {
     }
 
     try {
+      // Only `transfers` is requested. The platform is the merchant of record
+      // and collects the card payment itself, so connected accounts never need
+      // card_payments — and requesting it would rule out every country that
+      // only supports the `recipient` service agreement, which is most of the
+      // list outside the US, Canada, and the UK.
       const account = await stripe.accounts.create({
         type: "express",
         country: requestedCountry,
         email: user.email,
         capabilities: {
-          card_payments: { requested: true },
           transfers: { requested: true },
         },
       });
