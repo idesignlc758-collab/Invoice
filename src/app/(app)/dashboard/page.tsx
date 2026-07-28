@@ -119,8 +119,13 @@ export default async function DashboardPage({
                 <p className="font-display text-5xl font-extrabold tabular-nums tracking-tight">
                   {formatCents(todayCents, "usd")}
                 </p>
-                <a href="/api/dashboard-link" className="text-sm text-accent font-medium">
-                  View your Stripe dashboard →
+                <a
+                  href="/api/dashboard-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-accent font-medium"
+                >
+                  View your Stripe dashboard ↗
                 </a>
               </section>
 
@@ -239,8 +244,13 @@ export default async function DashboardPage({
 
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs uppercase tracking-wide text-muted">Invoices</p>
-                <a href="/api/dashboard-link" className="text-sm text-accent font-medium">
-                  View your Stripe dashboard →
+                <a
+                  href="/api/dashboard-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-accent font-medium"
+                >
+                  View your Stripe dashboard ↗
                 </a>
               </div>
 
