@@ -204,9 +204,30 @@ export function NewInvoiceFlow({
     <div className="mb-4">
       <p className="text-xs uppercase tracking-wide text-muted mb-2">Line items</p>
       <div className="rounded-2xl border border-line divide-y divide-line mb-2 overflow-hidden">
-        <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-          <span className="truncate">{description || "First item"}</span>
-          <span className="tabular-nums font-medium">{formatCents(cents)}</span>
+        {/* The first item is editable in place. The keypad and the job chips
+            seed it, but nothing should force a trip back to change a word. */}
+        <div className="flex flex-col gap-2 p-3">
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What are you billing for?"
+            className={`min-w-0 flex-1 rounded-lg border border-line ${inputBg} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent`}
+          />
+          <div
+            className={`flex min-w-0 items-center rounded-lg border border-line ${inputBg} px-3 py-2 focus-within:ring-2 focus-within:ring-accent`}
+          >
+            <span className="mr-1 text-sm text-muted">$</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={cents === 0 ? "" : (cents / 100).toString()}
+              onChange={(e) => setCents(Math.max(0, Math.round(Number(e.target.value || 0) * 100)))}
+              className="min-w-0 flex-1 bg-transparent text-sm tabular-nums focus:outline-none"
+            />
+          </div>
         </div>
 
         {extraItems.map((item) => (

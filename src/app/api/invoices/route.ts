@@ -92,6 +92,21 @@ export async function POST(request: Request) {
   const feeCents = calculateFeeAmount(subtotalCents);
   const acct = user.stripeAccountId;
 
+  // The platform is the merchant of record, so Stripe brands the invoice with
+  // the platform's name. Without this the client sees only "iDesignLC" and has
+  // no idea who actually did the work, so pull the connected account's
+  // business name and surface it on the document.
+  let businessName: string | null = null;
+  try {
+    const account = await stripe.accounts.retrieve(acct);
+    businessName =
+      account.business_profile?.name ??
+      account.settings?.dashboard?.display_name ??
+      null;
+  } catch {
+    // Non-fatal — an invoice without the attribution line still works.
+  }
+
   const existingCustomers = await stripe.customers.list({ email: clientEmail, limit: 1 });
   const customer =
     existingCustomers.data[0] ??
@@ -127,6 +142,13 @@ export async function POST(request: Request) {
     // rules out every `recipient` service agreement country.
     transfer_data: { destination: acct },
     application_fee_amount: feeCents,
+    // Stripe caps custom field name at 40 chars and value at 140.
+    ...(businessName
+      ? {
+          custom_fields: [{ name: "From", value: businessName.slice(0, 140) }],
+          footer: `Billed by ${businessName} through iDesignLC.`,
+        }
+      : {}),
   });
 
   await stripe.invoices.finalizeInvoice(invoice.id!);
