@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 // TEMPORARY diagnostic route — reports only whether each expected env var is
 // present and how long it is. Never returns actual values. Remove after use.
@@ -25,5 +26,18 @@ export async function GET() {
     })
   );
 
-  return NextResponse.json(report);
+  // Prove the Turso connection actually works, not just that the vars exist.
+  let database: { ok: boolean; error?: string };
+  try {
+    const count = await prisma.user.count();
+    database = { ok: true };
+    Object.assign(database, { userRows: count });
+  } catch (err) {
+    database = {
+      ok: false,
+      error: (err instanceof Error ? err.message : String(err)).slice(0, 200),
+    };
+  }
+
+  return NextResponse.json({ env: report, database });
 }
