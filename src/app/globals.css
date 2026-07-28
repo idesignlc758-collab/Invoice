@@ -101,6 +101,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Cards read as floating surfaces rather than outlined boxes. Kept subtle in
+   dark mode, where a heavy shadow just muddies the surface. */
+.elevated {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 28px -16px rgb(0 0 0 / 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  .elevated {
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  }
+}
+
 /* Keeps fixed bottom bars clear of the iPhone home indicator. */
 .pb-safe {
   padding-bottom: calc(1rem + env(safe-area-inset-bottom));

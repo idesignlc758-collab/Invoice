@@ -116,7 +116,10 @@ export default async function DashboardPage({
 
           {isReady && (
             <>
-              <section className="mb-8 mt-6">
+              {/* Balance card: one hero figure plus two supporting stats, so
+                  the space below "Collected today" carries information
+                  instead of sitting empty. */}
+              <section className="elevated mb-6 mt-6 rounded-3xl border border-line bg-card p-6">
                 <p className="text-sm text-muted mb-1">Collected today</p>
                 <p className="font-display text-5xl font-extrabold tabular-nums tracking-tight">
                   {formatCents(todayCents, "usd")}
@@ -125,10 +128,25 @@ export default async function DashboardPage({
                   href="/api/dashboard-link"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-accent font-medium"
+                  className="mt-1 inline-block text-sm font-medium text-accent"
                 >
                   View your Stripe dashboard {"↗︎"}
                 </a>
+
+                <div className="mt-5 grid grid-cols-2 gap-3 border-t border-line pt-5">
+                  <div>
+                    <p className="text-xs text-muted mb-0.5">This month</p>
+                    <p className="font-display text-lg font-bold tabular-nums">
+                      {formatCents(monthCents, "usd")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted mb-0.5">Awaiting payment</p>
+                    <p className="font-display text-lg font-bold tabular-nums text-pending">
+                      {formatCents(openCents, "usd")}
+                    </p>
+                  </div>
+                </div>
               </section>
 
               <section className="flex-1 flex flex-col gap-3">
@@ -142,9 +160,12 @@ export default async function DashboardPage({
                   <Link
                     key={invoice.id}
                     href={`/invoices/${invoice.id}`}
-                    className="rounded-2xl border border-line bg-card p-4 flex items-center justify-between gap-4 active:bg-line/40 transition-colors"
+                    className="elevated flex items-center gap-3 rounded-2xl border border-line bg-card p-4 transition-colors active:bg-line/40"
                   >
-                    <div className="min-w-0">
+                    <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-line bg-background font-display text-xs font-bold">
+                      {initials(invoice.clientName, invoice.clientEmail)}
+                    </span>
+                    <div className="min-w-0 flex-1">
                       <p className="font-medium truncate">{invoice.description}</p>
                       <p className="text-sm text-muted truncate">
                         {invoice.clientName || invoice.clientEmail}

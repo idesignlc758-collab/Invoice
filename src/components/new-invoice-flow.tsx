@@ -7,6 +7,7 @@ import { formatCents, initials } from "@/lib/format";
 
 const PLATFORM_FEE_PERCENT = 5;
 const JOB_PRESETS = ["Service", "Product", "Hourly", "Custom"];
+const QUICK_AMOUNTS = [2500, 5000, 10000, 25000, 50000]; // cents
 const DUE_PRESETS = [
   { label: "Pay now", days: 0 },
   { label: "7 days", days: 7 },
@@ -194,6 +195,39 @@ export function NewInvoiceFlow({
   );
 
   const dueLabel = DUE_PRESETS.find((preset) => preset.days === dueInDays)?.label ?? "Pay now";
+
+  const stepIndex = { amount: 0, details: 1, review: 2, sent: 3 }[step];
+  const stepProgress = (
+    <div className="mb-8 flex gap-1.5" role="progressbar" aria-valuenow={stepIndex + 1} aria-valuemin={1} aria-valuemax={3}>
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          className={`h-1 flex-1 rounded-full transition-colors ${
+            i <= stepIndex ? "bg-accent" : "bg-line"
+          }`}
+        />
+      ))}
+    </div>
+  );
+
+  const quickAmountChips = (
+    <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+      {QUICK_AMOUNTS.map((amount) => (
+        <button
+          key={amount}
+          type="button"
+          onClick={() => setCents(amount)}
+          className={`flex min-h-11 flex-shrink-0 items-center rounded-full border px-4 text-sm font-medium tabular-nums ${
+            cents === amount
+              ? "border-accent bg-accent text-accent-contrast"
+              : "border-line bg-card text-foreground"
+          }`}
+        >
+          {formatCents(amount)}
+        </button>
+      ))}
+    </div>
+  );
 
   // Payment terms are core to any invoice, so these stay visible. Only the
   // genuinely optional client name hides behind "+ Add details", keeping the
@@ -477,16 +511,18 @@ export function NewInvoiceFlow({
       <main className="md:hidden flex-1 flex flex-col px-6 py-8 max-w-md mx-auto w-full">
         {step === "amount" && (
           <>
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-4">
               <Link href="/dashboard" className="text-sm text-muted">
                 Cancel
               </Link>
-              <p className="text-sm text-muted">Step 1 of 3</p>
+              <p className="text-sm text-muted">Amount</p>
             </div>
-            <div className="flex-1 flex items-center justify-center">
+            {stepProgress}
+            <div className="flex-1 flex flex-col items-center justify-center gap-6">
               <p className="font-display text-6xl font-extrabold tabular-nums tracking-tight">
                 {formatCents(cents)}
               </p>
+              {quickAmountChips}
             </div>
             <Keypad onKey={onKey} />
             <button
@@ -502,12 +538,13 @@ export function NewInvoiceFlow({
 
         {step === "details" && (
           <>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <button type="button" onClick={() => setStep("amount")} className="text-sm text-muted">
                 ← Back
               </button>
-              <p className="text-sm text-muted">Step 2 of 3</p>
+              <p className="text-sm text-muted">Details</p>
             </div>
+            {stepProgress}
             <p className="font-display text-3xl font-extrabold tabular-nums mb-6">
               {formatCents(totalCents)}
             </p>
@@ -554,13 +591,14 @@ export function NewInvoiceFlow({
 
         {step === "review" && (
           <>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <button type="button" onClick={() => setStep("details")} className="text-sm text-muted">
                 ← Back
               </button>
-              <p className="text-sm text-muted">Step 3 of 3</p>
+              <p className="text-sm text-muted">Review</p>
             </div>
-            <div className="rounded-2xl border border-line bg-card p-6 mb-6" style={{ borderStyle: "dashed" }}>
+            {stepProgress}
+            <div className="elevated rounded-2xl border border-line bg-card p-6 mb-6" style={{ borderStyle: "dashed" }}>
               <p className="text-xs uppercase tracking-wide text-muted mb-1">{description}</p>
               <p className="font-display text-4xl font-extrabold tabular-nums mb-4">
                 {formatCents(totalCents)}
