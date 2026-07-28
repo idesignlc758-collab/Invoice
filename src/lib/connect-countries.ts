@@ -34,3 +34,16 @@ const VALID_CODES = new Set(CONNECT_COUNTRIES.map((country) => country.code as s
 export function isSupportedCountry(code: string): boolean {
   return VALID_CODES.has(code);
 }
+
+// Countries this US platform can reach under Stripe's standard `full` service
+// agreement. Everywhere else, the `full` agreement simply doesn't exist, and
+// account creation fails unless we ask for `recipient` instead.
+//
+// Recipient accounts can receive transfers but can't process payments or hold
+// the card_payments capability — which is fine here, because the platform is
+// the merchant of record and collects the card payment itself.
+const FULL_AGREEMENT_COUNTRIES = new Set(["US", "CA", "GB"]);
+
+export function needsRecipientAgreement(code: string): boolean {
+  return !FULL_AGREEMENT_COUNTRIES.has(code);
+}

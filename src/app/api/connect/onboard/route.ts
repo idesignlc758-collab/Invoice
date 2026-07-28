@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
-import { isSupportedCountry } from "@/lib/connect-countries";
+import { isSupportedCountry, needsRecipientAgreement } from "@/lib/connect-countries";
 
 async function createOnboardingRedirect(requestedCountry?: string) {
   const user = await getCurrentUser();
@@ -55,6 +55,12 @@ async function createOnboardingRedirect(requestedCountry?: string) {
         capabilities: {
           transfers: { requested: true },
         },
+        // Outside the US, Canada, and the UK the `full` service agreement
+        // isn't offered, so creation fails against the default. Asking for
+        // `recipient` is what makes St. Lucia and the rest reachable.
+        ...(needsRecipientAgreement(requestedCountry)
+          ? { tos_acceptance: { service_agreement: "recipient" as const } }
+          : {}),
       });
       accountId = account.id;
     } catch (err) {
