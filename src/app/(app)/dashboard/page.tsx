@@ -6,6 +6,7 @@ import { SignOutButton } from "@/components/sign-out-button";
 import { Sidebar } from "@/components/sidebar";
 import { InvoiceTable } from "@/components/invoice-table";
 import { StatusPill } from "@/components/status-pill";
+import { CONNECT_COUNTRIES } from "@/lib/connect-countries";
 
 function greeting() {
   const hour = new Date().getHours();
@@ -52,7 +53,37 @@ export default async function DashboardPage({
           ? "You're almost there — Stripe is finishing verification. This can take a few minutes."
           : "Connect your Stripe account to start sending invoices. Takes about 3 minutes."}
       </p>
-      <form action="/api/connect/onboard" method="POST">
+
+      {onboarding === "country_required" && (
+        <p className="text-sm text-danger mb-4">Choose the country your business is based in.</p>
+      )}
+      {onboarding === "country_unsupported" && (
+        <p className="text-sm text-danger mb-4">
+          Stripe can&apos;t open an account in that country for this platform yet. Try another, or
+          get in touch.
+        </p>
+      )}
+
+      <form action="/api/connect/onboard" method="POST" className="flex flex-wrap items-end gap-3">
+        {!user.stripeAccountId && (
+          <label className="flex flex-col gap-1.5 text-sm">
+            Where is your business based?
+            <select
+              name="country"
+              defaultValue="US"
+              className="rounded-xl border border-line bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              {CONNECT_COUNTRIES.map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.name}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-muted">
+              This can&apos;t be changed later — Stripe locks it to the account.
+            </span>
+          </label>
+        )}
         <button
           type="submit"
           className="rounded-full bg-accent text-accent-contrast font-display font-bold px-5 py-3 text-sm"

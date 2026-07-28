@@ -2,23 +2,40 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
+import { isSupportedCountry } from "@/lib/connect-countries";
 
-async function createOnboardingRedirect() {
+async function createOnboardingRedirect(requestedCountry?: string) {
   const user = await getCurrentUser();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
+  const backToDashboard = (reason: string) =>
+    NextResponse.redirect(new URL(`/dashboard?onboarding=${reason}`, appUrl), 303);
 
   let accountId = user.stripeAccountId;
+
   if (!accountId) {
-    const account = await stripe.accounts.create({
-      type: "express",
-      country: "US",
-      email: user.email,
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
-    });
-    accountId = account.id;
+    // A connected account's country is permanent, so it has to be chosen
+    // before the account exists — Stripe's hosted onboarding can't change it.
+    if (!requestedCountry || !isSupportedCountry(requestedCountry)) {
+      return backToDashboard("country_required");
+    }
+
+    try {
+      const account = await stripe.accounts.create({
+        type: "express",
+        country: requestedCountry,
+        email: user.email,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+      });
+      accountId = account.id;
+    } catch {
+      // Most likely an unsupported country/capability combination for this
+      // platform. Send them back with a message rather than a 500.
+      return backToDashboard("country_unsupported");
+    }
+
     await prisma.user.update({
       where: { id: user.id },
       data: { stripeAccountId: accountId, onboardingStatus: "pending" },
@@ -35,12 +52,16 @@ async function createOnboardingRedirect() {
   return NextResponse.redirect(accountLink.url, 303);
 }
 
-// Triggered by the "Connect with Stripe" button on the dashboard.
-export async function POST() {
-  return createOnboardingRedirect();
+// Triggered by the "Connect with Stripe" button on the dashboard, which posts
+// the chosen country alongside it.
+export async function POST(request: Request) {
+  const form = await request.formData().catch(() => null);
+  const country = form ? String(form.get("country") ?? "") : "";
+  return createOnboardingRedirect(country);
 }
 
-// Stripe redirects here (refresh_url) if an onboarding link expired or was invalid.
+// Stripe redirects here (refresh_url) if an onboarding link expired or was
+// invalid. The account already exists by then, so no country is needed.
 export async function GET() {
   return createOnboardingRedirect();
 }
