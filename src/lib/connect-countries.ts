@@ -1,47 +1,32 @@
 // Countries a connected account can be created in.
 //
-// Stripe only supports cross-border transfers on the payments balance between
-// the US, Canada, the UK, the EEA, and Switzerland. This platform is
-// US-registered, so offering anything outside that set would let a user finish
-// onboarding and then fail at payout time — worse than refusing up front.
+// This list mirrors exactly what's enabled under Connect > Settings in the
+// Stripe Dashboard for acct_1RAa6cBgI9KTGRAU. Keep the two in sync — offering
+// a country Stripe hasn't enabled fails at account creation, and enabling one
+// here that the Dashboard doesn't allow does nothing.
 //
 // A connected account's country is fixed at creation and can never be changed,
-// which is why it has to be chosen before the account is created rather than
-// during Stripe's hosted onboarding.
+// which is why it's collected before the account exists rather than during
+// Stripe's hosted onboarding.
+//
+// CAVEAT: only US, CA, and GB are inside the set Stripe supports for
+// cross-border transfers from a US platform. The others are reachable only
+// under a `recipient` service agreement, which cannot request the
+// card_payments capability or act as merchant of record — meaning the
+// on_behalf_of/issuer branding in the invoice route won't apply to them. See
+// createOnboardingRedirect, which surfaces a message instead of throwing if
+// Stripe rejects the combination.
 export const CONNECT_COUNTRIES = [
-  { code: "US", name: "United States" },
+  { code: "AG", name: "Antigua & Barbuda" },
+  { code: "AU", name: "Australia" },
+  { code: "BS", name: "Bahamas" },
   { code: "CA", name: "Canada" },
+  { code: "DO", name: "Dominican Republic" },
+  { code: "JM", name: "Jamaica" },
+  { code: "LC", name: "St. Lucia" },
+  { code: "TT", name: "Trinidad & Tobago" },
   { code: "GB", name: "United Kingdom" },
-  { code: "AT", name: "Austria" },
-  { code: "BE", name: "Belgium" },
-  { code: "BG", name: "Bulgaria" },
-  { code: "HR", name: "Croatia" },
-  { code: "CY", name: "Cyprus" },
-  { code: "CZ", name: "Czechia" },
-  { code: "DK", name: "Denmark" },
-  { code: "EE", name: "Estonia" },
-  { code: "FI", name: "Finland" },
-  { code: "FR", name: "France" },
-  { code: "DE", name: "Germany" },
-  { code: "GR", name: "Greece" },
-  { code: "HU", name: "Hungary" },
-  { code: "IE", name: "Ireland" },
-  { code: "IT", name: "Italy" },
-  { code: "LV", name: "Latvia" },
-  { code: "LI", name: "Liechtenstein" },
-  { code: "LT", name: "Lithuania" },
-  { code: "LU", name: "Luxembourg" },
-  { code: "MT", name: "Malta" },
-  { code: "NL", name: "Netherlands" },
-  { code: "NO", name: "Norway" },
-  { code: "PL", name: "Poland" },
-  { code: "PT", name: "Portugal" },
-  { code: "RO", name: "Romania" },
-  { code: "SK", name: "Slovakia" },
-  { code: "SI", name: "Slovenia" },
-  { code: "ES", name: "Spain" },
-  { code: "SE", name: "Sweden" },
-  { code: "CH", name: "Switzerland" },
+  { code: "US", name: "United States" },
 ] as const;
 
 const VALID_CODES = new Set(CONNECT_COUNTRIES.map((country) => country.code as string));
