@@ -23,6 +23,15 @@ type RecentClient = {
 
 type Step = "amount" | "details" | "review" | "sent";
 
+// The keypad drives the first line item. Anything added after it lives here,
+// so the one-item fast path never has to touch an array.
+type ExtraItem = {
+  id: string;
+  description: string;
+  quantity: number;
+  unitCents: number;
+};
+
 export function NewInvoiceFlow({
   recentClients,
   prefillClient,
@@ -36,6 +45,8 @@ export function NewInvoiceFlow({
   const [clientName, setClientName] = useState(prefillClient?.clientName ?? "");
   const [jobPreset, setJobPreset] = useState<string | null>(null);
   const [description, setDescription] = useState("");
+  const [extraItems, setExtraItems] = useState<ExtraItem[]>([]);
+  const [taxPercent, setTaxPercent] = useState(0);
   const [dueInDays, setDueInDays] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,9 +54,21 @@ export function NewInvoiceFlow({
   const [sentUrl, setSentUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const feeCents = Math.round(cents * (PLATFORM_FEE_PERCENT / 100));
-  const netCents = cents - feeCents;
-  const canSend = cents > 0 && clientEmail.trim().length > 3 && description.trim().length > 0;
+  const extrasCents = extraItems.reduce((sum, item) => sum + item.quantity * item.unitCents, 0);
+  const subtotalCents = cents + extrasCents;
+  const taxCents = Math.round(subtotalCents * (taxPercent / 100));
+  const totalCents = subtotalCents + taxCents;
+  // Fee is taken on the pre-tax subtotal; tax passes straight through.
+  const feeCents = Math.round(subtotalCents * (PLATFORM_FEE_PERCENT / 100));
+  const netCents = totalCents - feeCents;
+  const extrasComplete = extraItems.every(
+    (item) => item.description.trim().length > 0 && item.unitCents > 0 && item.quantity > 0
+  );
+  const canSend =
+    cents > 0 &&
+    clientEmail.trim().length > 3 &&
+    description.trim().length > 0 &&
+    extrasComplete;
 
   function onKey(key: string) {
     if (key === "⌫") {
@@ -58,6 +81,23 @@ export function NewInvoiceFlow({
   function pickRecentClient(rc: RecentClient) {
     setClientEmail(rc.clientEmail);
     setClientName(rc.clientName ?? "");
+  }
+
+  function addExtraItem() {
+    setExtraItems((items) => [
+      ...items,
+      { id: crypto.randomUUID(), description: "", quantity: 1, unitCents: 0 },
+    ]);
+  }
+
+  function updateExtraItem(id: string, patch: Partial<Omit<ExtraItem, "id">>) {
+    setExtraItems((items) =>
+      items.map((item) => (item.id === id ? { ...item, ...patch } : item))
+    );
+  }
+
+  function removeExtraItem(id: string) {
+    setExtraItems((items) => items.filter((item) => item.id !== id));
   }
 
   function pickJob(preset: string) {
@@ -73,6 +113,8 @@ export function NewInvoiceFlow({
     setClientName("");
     setJobPreset(null);
     setDescription("");
+    setExtraItems([]);
+    setTaxPercent(0);
     setDueInDays(0);
     setShowDetails(false);
     setError(null);
@@ -90,9 +132,16 @@ export function NewInvoiceFlow({
       body: JSON.stringify({
         clientEmail,
         clientName,
-        description,
-        amount: (cents / 100).toFixed(2),
         dueInDays,
+        taxPercent,
+        items: [
+          { description, quantity: 1, unitAmountCents: cents },
+          ...extraItems.map((item) => ({
+            description: item.description,
+            quantity: item.quantity,
+            unitAmountCents: item.unitCents,
+          })),
+        ],
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -110,7 +159,11 @@ export function NewInvoiceFlow({
     if (!sentUrl) return;
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Invoice", text: `Pay ${formatCents(cents)}`, url: sentUrl });
+        await navigator.share({
+          title: "Invoice",
+          text: `Pay ${formatCents(totalCents)}`,
+          url: sentUrl,
+        });
       } catch {
         // user cancelled the share sheet — no-op
       }
@@ -145,6 +198,105 @@ export function NewInvoiceFlow({
   // Payment terms are core to any invoice, so these stay visible. Only the
   // genuinely optional client name hides behind "+ Add details", keeping the
   // common case fast on a phone.
+  // The first line item comes from the keypad and the job chips, so it renders
+  // as a read-only summary row. Extra items are fully editable.
+  const renderItems = (inputBg: string) => (
+    <div className="mb-4">
+      <p className="text-xs uppercase tracking-wide text-muted mb-2">Line items</p>
+      <div className="rounded-2xl border border-line divide-y divide-line mb-2 overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+          <span className="truncate">{description || "First item"}</span>
+          <span className="tabular-nums font-medium">{formatCents(cents)}</span>
+        </div>
+
+        {extraItems.map((item) => (
+          <div key={item.id} className="flex flex-col gap-2 p-3">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={item.description}
+                onChange={(e) => updateExtraItem(item.id, { description: e.target.value })}
+                placeholder="Description"
+                className={`min-w-0 flex-1 rounded-lg border border-line ${inputBg} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent`}
+              />
+              <button
+                type="button"
+                onClick={() => removeExtraItem(item.id)}
+                aria-label={`Remove ${item.description || "item"}`}
+                className="px-2 text-muted hover:text-danger"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-1 text-xs text-muted">
+                Qty
+                <input
+                  type="number"
+                  min="1"
+                  value={item.quantity}
+                  onChange={(e) =>
+                    updateExtraItem(item.id, {
+                      quantity: Math.max(1, Math.round(Number(e.target.value) || 1)),
+                    })
+                  }
+                  className={`w-14 rounded-lg border border-line ${inputBg} px-2 py-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-accent`}
+                />
+              </label>
+              <div
+                className={`flex min-w-0 flex-1 items-center rounded-lg border border-line ${inputBg} px-3 py-2 focus-within:ring-2 focus-within:ring-accent`}
+              >
+                <span className="mr-1 text-sm text-muted">$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={item.unitCents === 0 ? "" : (item.unitCents / 100).toString()}
+                  onChange={(e) =>
+                    updateExtraItem(item.id, {
+                      unitCents: Math.max(0, Math.round(Number(e.target.value || 0) * 100)),
+                    })
+                  }
+                  className="min-w-0 flex-1 bg-transparent text-sm tabular-nums focus:outline-none"
+                />
+              </div>
+              <span className="w-20 shrink-0 text-right text-sm tabular-nums">
+                {formatCents(item.quantity * item.unitCents)}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={addExtraItem} className="text-sm font-medium text-accent">
+        + Add item
+      </button>
+    </div>
+  );
+
+  const renderTaxRow = (inputBg: string) => (
+    <label className="mb-4 flex items-center justify-between gap-3 text-sm">
+      <span>Tax</span>
+      <div
+        className={`flex w-24 items-center rounded-xl border border-line ${inputBg} px-3 py-2 focus-within:ring-2 focus-within:ring-accent`}
+      >
+        <input
+          type="number"
+          min="0"
+          max="100"
+          step="0.01"
+          placeholder="0"
+          value={taxPercent === 0 ? "" : taxPercent.toString()}
+          onChange={(e) =>
+            setTaxPercent(Math.min(100, Math.max(0, Number(e.target.value) || 0)))
+          }
+          className="min-w-0 flex-1 bg-transparent text-right text-sm tabular-nums focus:outline-none"
+        />
+        <span className="ml-1 text-muted">%</span>
+      </div>
+    </label>
+  );
+
   const dueChips = (
     <div className="mb-4">
       <p className="text-xs uppercase tracking-wide text-muted mb-2">Payment due</p>
@@ -220,11 +372,21 @@ export function NewInvoiceFlow({
     </div>
   );
 
-  const feeBreakdown = (
-    <div className="rounded-2xl border border-line bg-card p-5">
+  const totalsRows = (
+    <>
       <div className="flex justify-between text-sm py-1.5">
-        <span className="text-muted">Amount</span>
-        <span className="font-display font-bold tabular-nums">{formatCents(cents)}</span>
+        <span className="text-muted">Subtotal</span>
+        <span className="tabular-nums">{formatCents(subtotalCents)}</span>
+      </div>
+      {taxPercent > 0 && (
+        <div className="flex justify-between text-sm py-1.5 border-t border-line">
+          <span className="text-muted">Tax ({taxPercent}%)</span>
+          <span className="tabular-nums">{formatCents(taxCents)}</span>
+        </div>
+      )}
+      <div className="flex justify-between text-sm py-1.5 border-t border-line font-medium">
+        <span>Total</span>
+        <span className="font-display font-bold tabular-nums">{formatCents(totalCents)}</span>
       </div>
       <div className="flex justify-between text-sm py-1.5 border-t border-line">
         <span className="text-muted">Platform fee ({PLATFORM_FEE_PERCENT}%)</span>
@@ -234,7 +396,11 @@ export function NewInvoiceFlow({
         <span>You get</span>
         <span className="tabular-nums text-success">{formatCents(netCents)}</span>
       </div>
-    </div>
+    </>
+  );
+
+  const feeBreakdown = (
+    <div className="rounded-2xl border border-line bg-card p-5">{totalsRows}</div>
   );
 
   const sentView = (
@@ -252,7 +418,7 @@ export function NewInvoiceFlow({
       </div>
       <h1 className="font-display text-2xl font-extrabold mb-1">Invoice sent</h1>
       <p className="text-sm text-muted mb-8">
-        {formatCents(cents)} to {clientEmail}. They&apos;ll get an email — or share the link
+        {formatCents(totalCents)} to {clientEmail}. They&apos;ll get an email — or share the link
         directly right now.
       </p>
 
@@ -314,7 +480,7 @@ export function NewInvoiceFlow({
               <p className="text-sm text-muted">Step 2 of 3</p>
             </div>
             <p className="font-display text-3xl font-extrabold tabular-nums mb-6">
-              {formatCents(cents)}
+              {formatCents(totalCents)}
             </p>
             {recentClientChips}
             <label className="flex flex-col gap-1.5 text-sm mb-4">
@@ -341,12 +507,14 @@ export function NewInvoiceFlow({
                 className="rounded-xl border border-line bg-card px-4 py-3 text-base mb-4 focus:outline-none focus:ring-2 focus:ring-accent"
               />
             )}
+            {renderItems("bg-card")}
+            {renderTaxRow("bg-card")}
             {dueChips}
             {renderDetails("bg-card")}
             <div className="flex-1" />
             <button
               type="button"
-              disabled={!(clientEmail.trim().length > 3 && description.trim().length > 0)}
+              disabled={!canSend}
               onClick={() => setStep("review")}
               className="mt-6 rounded-full bg-accent text-accent-contrast font-display font-bold py-4 disabled:opacity-40"
             >
@@ -366,8 +534,29 @@ export function NewInvoiceFlow({
             <div className="rounded-2xl border border-line bg-card p-6 mb-6" style={{ borderStyle: "dashed" }}>
               <p className="text-xs uppercase tracking-wide text-muted mb-1">{description}</p>
               <p className="font-display text-4xl font-extrabold tabular-nums mb-4">
-                {formatCents(cents)}
+                {formatCents(totalCents)}
               </p>
+
+              {extraItems.length > 0 && (
+                <div className="mb-2 border-t border-line pt-2">
+                  <div className="flex justify-between py-1 text-sm">
+                    <span className="text-muted truncate">{description}</span>
+                    <span className="tabular-nums">{formatCents(cents)}</span>
+                  </div>
+                  {extraItems.map((item) => (
+                    <div key={item.id} className="flex justify-between py-1 text-sm">
+                      <span className="text-muted truncate">
+                        {item.description}
+                        {item.quantity > 1 && ` × ${item.quantity}`}
+                      </span>
+                      <span className="tabular-nums">
+                        {formatCents(item.quantity * item.unitCents)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="flex justify-between text-sm py-2 border-t border-line">
                 <span className="text-muted">To</span>
                 <span className="font-medium">{clientName || clientEmail}</span>
@@ -376,14 +565,7 @@ export function NewInvoiceFlow({
                 <span className="text-muted">Due</span>
                 <span>{dueLabel}</span>
               </div>
-              <div className="flex justify-between text-sm py-2 border-t border-line">
-                <span className="text-muted">Platform fee ({PLATFORM_FEE_PERCENT}%)</span>
-                <span className="tabular-nums">{formatCents(feeCents)}</span>
-              </div>
-              <div className="flex justify-between text-sm py-2 border-t border-line font-medium">
-                <span>You get</span>
-                <span className="tabular-nums text-success">{formatCents(netCents)}</span>
-              </div>
+              <div className="border-t border-line pt-1">{totalsRows}</div>
             </div>
             {error && <p className="text-sm text-danger mb-4">{error}</p>}
             <div className="flex-1" />
@@ -393,7 +575,7 @@ export function NewInvoiceFlow({
               onClick={send}
               className="rounded-full bg-accent text-accent-contrast font-display font-bold py-4 disabled:opacity-60"
             >
-              {loading ? "Sending…" : `Send invoice for ${formatCents(cents)}`}
+              {loading ? "Sending…" : `Send invoice for ${formatCents(totalCents)}`}
             </button>
           </>
         )}
@@ -457,6 +639,8 @@ export function NewInvoiceFlow({
                 />
               )}
 
+              {renderItems("bg-background")}
+              {renderTaxRow("bg-background")}
               {dueChips}
               <div className="flex flex-col">{renderDetails("bg-background")}</div>
 
@@ -470,7 +654,11 @@ export function NewInvoiceFlow({
                 onClick={send}
                 className="w-full rounded-full bg-accent text-accent-contrast font-display font-bold py-3.5 disabled:opacity-40"
               >
-                {loading ? "Sending…" : cents > 0 ? `Send invoice for ${formatCents(cents)}` : "Send invoice"}
+                {loading
+                  ? "Sending…"
+                  : cents > 0
+                    ? `Send invoice for ${formatCents(totalCents)}`
+                    : "Send invoice"}
               </button>
             </>
           ) : (

@@ -2,6 +2,51 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { stripe, calculateFeeAmount } from "@/lib/stripe";
+import { formatCents } from "@/lib/format";
+
+type IncomingItem = {
+  description: string;
+  quantity: number;
+  unitAmountCents: number;
+};
+
+function parseItems(raw: unknown): IncomingItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((entry) => {
+      const item = entry as Record<string, unknown>;
+      const description = String(item.description ?? "").trim();
+      const quantity = Math.round(Number(item.quantity));
+      const unitAmountCents = Math.round(Number(item.unitAmountCents));
+      return { description, quantity, unitAmountCents };
+    })
+    .filter(
+      (item) =>
+        item.description.length > 0 &&
+        Number.isFinite(item.quantity) &&
+        item.quantity > 0 &&
+        Number.isFinite(item.unitAmountCents) &&
+        item.unitAmountCents > 0
+    );
+}
+
+// Stripe tax rates are reusable objects, so look for an existing one at this
+// percentage before creating another. Without this every invoice would leave
+// behind a duplicate rate.
+async function resolveTaxRateId(percentage: number): Promise<string> {
+  const existing = await stripe.taxRates.list({ active: true, limit: 100 });
+  const match = existing.data.find(
+    (rate) => rate.percentage === percentage && rate.inclusive === false
+  );
+  if (match) return match.id;
+
+  const created = await stripe.taxRates.create({
+    display_name: "Tax",
+    percentage,
+    inclusive: false,
+  });
+  return created.id;
+}
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -15,25 +60,36 @@ export async function POST(request: Request) {
   const body = await request.json();
   const clientEmail = String(body.clientEmail ?? "").trim();
   const clientName = body.clientName ? String(body.clientName).trim() : null;
-  const description = String(body.description ?? "").trim();
-  const amountDollars = Number(body.amount);
+  const items = parseItems(body.items);
+
+  const requestedTax = Number(body.taxPercent);
+  const taxPercent = Number.isFinite(requestedTax)
+    ? Math.min(100, Math.max(0, requestedTax))
+    : 0;
+
   // Stripe requires days_until_due whenever collection_method is send_invoice.
-  // 0 means "due on receipt", which is the default the keypad flow sends.
+  // 0 means "due on receipt", which is what the "Pay now" preset sends.
   const requestedDays = Number(body.dueInDays);
   const dueInDays = Number.isFinite(requestedDays)
     ? Math.min(365, Math.max(0, Math.round(requestedDays)))
     : 0;
 
-  if (!clientEmail || !description || !Number.isFinite(amountDollars) || amountDollars <= 0) {
+  if (!clientEmail || items.length === 0) {
     return NextResponse.json(
-      { error: "Enter a client email, description, and an amount greater than 0." },
+      { error: "Enter a client email and at least one line item with an amount." },
       { status: 400 }
     );
   }
 
   const currency = "usd";
-  const amountCents = Math.round(amountDollars * 100);
-  const feeCents = calculateFeeAmount(amountCents);
+  const subtotalCents = items.reduce(
+    (sum, item) => sum + item.quantity * item.unitAmountCents,
+    0
+  );
+  const taxAmountCents = Math.round(subtotalCents * (taxPercent / 100));
+  // The platform fee is taken on the pre-tax subtotal — sales tax is money the
+  // user owes onward, not revenue to take a cut of.
+  const feeCents = calculateFeeAmount(subtotalCents);
   const acct = user.stripeAccountId;
 
   const existingCustomers = await stripe.customers.list({ email: clientEmail, limit: 1 });
@@ -41,18 +97,29 @@ export async function POST(request: Request) {
     existingCustomers.data[0] ??
     (await stripe.customers.create({ email: clientEmail, name: clientName ?? undefined }));
 
-  await stripe.invoiceItems.create({
-    customer: customer.id,
-    amount: amountCents,
-    currency,
-    description,
-  });
+  for (const item of items) {
+    // invoiceItems.create takes a flat amount — it has no inline price data,
+    // and `pricing` only accepts an existing Price ID. So fold quantity into
+    // the amount and spell it out in the description instead.
+    await stripe.invoiceItems.create({
+      customer: customer.id,
+      currency,
+      description:
+        item.quantity > 1
+          ? `${item.description} (${item.quantity} × ${formatCents(item.unitAmountCents, currency)})`
+          : item.description,
+      amount: item.quantity * item.unitAmountCents,
+    });
+  }
+
+  const taxRateIds = taxPercent > 0 ? [await resolveTaxRateId(taxPercent)] : undefined;
 
   const invoice = await stripe.invoices.create({
     customer: customer.id,
     collection_method: "send_invoice",
     days_until_due: dueInDays,
     pending_invoice_items_behavior: "include",
+    default_tax_rates: taxRateIds,
     transfer_data: { destination: acct },
     application_fee_amount: feeCents,
     on_behalf_of: acct,
@@ -62,6 +129,11 @@ export async function POST(request: Request) {
   await stripe.invoices.finalizeInvoice(invoice.id!);
   const sent = await stripe.invoices.sendInvoice(invoice.id!);
 
+  const summary =
+    items.length === 1
+      ? items[0].description
+      : `${items[0].description} + ${items.length - 1} more`;
+
   await prisma.invoice.create({
     data: {
       userId: user.id,
@@ -69,8 +141,12 @@ export async function POST(request: Request) {
       stripeCustomerId: customer.id,
       clientEmail,
       clientName,
-      description,
-      amount: amountCents,
+      description: summary,
+      // Prefer the totals Stripe finalized so our records match the document.
+      subtotal: sent.subtotal ?? subtotalCents,
+      taxPercent,
+      taxAmount: taxAmountCents,
+      amount: sent.total ?? subtotalCents + taxAmountCents,
       feeAmount: feeCents,
       currency,
       status: "open",
@@ -78,6 +154,15 @@ export async function POST(request: Request) {
       // Read the due date back off the finalized invoice so it matches what
       // Stripe actually put on the document, not a locally guessed timestamp.
       dueDate: sent.due_date ? new Date(sent.due_date * 1000) : null,
+      lineItems: {
+        create: items.map((item, index) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unitAmount: item.unitAmountCents,
+          amount: item.quantity * item.unitAmountCents,
+          position: index,
+        })),
+      },
     },
   });
 

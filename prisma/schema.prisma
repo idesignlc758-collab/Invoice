@@ -28,8 +28,11 @@ model Invoice {
   stripeCustomerId String
   clientEmail      String
   clientName       String?
-  description      String
-  amount           Int // total, in cents
+  description      String // summary line for list views; full detail lives in lineItems
+  subtotal         Int       @default(0) // pre-tax, in cents
+  taxPercent       Float     @default(0)
+  taxAmount        Int       @default(0) // in cents
+  amount           Int // total including tax, in cents
   feeAmount        Int // platform fee, in cents
   currency         String    @default("usd")
   status           String    @default("draft") // draft | open | paid | void | uncollectible | payment_failed
@@ -38,7 +41,22 @@ model Invoice {
   paidAt           DateTime?
   createdAt        DateTime  @default(now())
 
+  lineItems InvoiceLineItem[]
+
   @@index([userId])
+}
+
+model InvoiceLineItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int     @default(1)
+  unitAmount  Int // per unit, in cents
+  amount      Int // quantity * unitAmount, in cents
+  position    Int     @default(0)
+
+  @@index([invoiceId])
 }
 
 model WebhookEvent {
