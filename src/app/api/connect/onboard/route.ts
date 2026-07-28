@@ -7,8 +7,16 @@ import { isSupportedCountry } from "@/lib/connect-countries";
 async function createOnboardingRedirect(requestedCountry?: string) {
   const user = await getCurrentUser();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
-  const backToDashboard = (reason: string) =>
-    NextResponse.redirect(new URL(`/dashboard?onboarding=${reason}`, appUrl), 303);
+  const backToDashboard = (status: string, detail?: string, country?: string) => {
+    const url = new URL("/dashboard", appUrl);
+    url.searchParams.set("onboarding", status);
+    // Pass Stripe's own wording through. A generic "try another country"
+    // message hides whether the problem is the country, a capability, or the
+    // platform's Connect settings — which are very different fixes.
+    if (detail) url.searchParams.set("reason", detail.slice(0, 300));
+    if (country) url.searchParams.set("country", country);
+    return NextResponse.redirect(url, 303);
+  };
 
   let accountId = user.stripeAccountId;
 
@@ -31,7 +39,7 @@ async function createOnboardingRedirect(requestedCountry?: string) {
     // A connected account's country is permanent, so it has to be chosen
     // before the account exists — Stripe's hosted onboarding can't change it.
     if (!requestedCountry || !isSupportedCountry(requestedCountry)) {
-      return backToDashboard("country_required");
+      return backToDashboard("country_required", undefined, requestedCountry);
     }
 
     try {
@@ -49,10 +57,9 @@ async function createOnboardingRedirect(requestedCountry?: string) {
         },
       });
       accountId = account.id;
-    } catch {
-      // Most likely an unsupported country/capability combination for this
-      // platform. Send them back with a message rather than a 500.
-      return backToDashboard("country_unsupported");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return backToDashboard("country_unsupported", message, requestedCountry);
     }
 
     await prisma.user.update({

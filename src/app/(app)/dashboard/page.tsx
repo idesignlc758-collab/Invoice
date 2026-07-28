@@ -23,10 +23,10 @@ function displayName(email: string) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ onboarding?: string }>;
+  searchParams: Promise<{ onboarding?: string; reason?: string; country?: string }>;
 }) {
   const user = await getCurrentUserWithInvoices();
-  const { onboarding } = await searchParams;
+  const { onboarding, reason, country: attemptedCountry } = await searchParams;
   const isReady = user.onboardingStatus === "ready";
 
   const startOfToday = new Date();
@@ -49,8 +49,8 @@ export default async function DashboardPage({
     <section className="rounded-2xl border border-line bg-card p-6">
       <h2 className="font-display text-xl font-bold mb-1">Get set up to invoice</h2>
       <p className="text-sm text-muted mb-4">
-        {user.onboardingStatus === "pending" || onboarding === "pending"
-          ? "You're almost there — Stripe is finishing verification. This can take a few minutes."
+        {user.stripeAccountId
+          ? "Your Stripe account exists but isn't verified yet. Pick up where you left off — Stripe needs the whole form completed before you can invoice."
           : "Connect your Stripe account to start sending invoices. Takes about 3 minutes."}
       </p>
 
@@ -58,10 +58,14 @@ export default async function DashboardPage({
         <p className="text-sm text-danger mb-4">Choose the country your business is based in.</p>
       )}
       {onboarding === "country_unsupported" && (
-        <p className="text-sm text-danger mb-4">
-          Stripe can&apos;t open an account in that country for this platform yet. Try another, or
-          get in touch.
-        </p>
+        <div className="mb-4 rounded-xl border border-danger/40 bg-danger/5 p-4">
+          <p className="text-sm text-danger font-medium mb-1">Stripe rejected that country</p>
+          {reason ? (
+            <p className="text-sm text-danger break-words">{reason}</p>
+          ) : (
+            <p className="text-sm text-danger">Try another country, or get in touch.</p>
+          )}
+        </div>
       )}
 
       <form action="/api/connect/onboard" method="POST" className="flex flex-wrap items-end gap-3">
@@ -69,7 +73,7 @@ export default async function DashboardPage({
           Where is your business based?
           <select
             name="country"
-            defaultValue="US"
+            defaultValue={attemptedCountry ?? "US"}
             className="rounded-xl border border-line bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent"
           >
             {CONNECT_COUNTRIES.map((country) => (
