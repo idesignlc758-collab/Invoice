@@ -7,6 +7,12 @@ import { formatCents, initials } from "@/lib/format";
 
 const PLATFORM_FEE_PERCENT = 5;
 const JOB_PRESETS = ["Ride", "Delivery", "Hourly", "Custom"];
+const DUE_PRESETS = [
+  { label: "On receipt", days: 0 },
+  { label: "7 days", days: 7 },
+  { label: "14 days", days: 14 },
+  { label: "30 days", days: 30 },
+];
 
 type RecentClient = {
   clientEmail: string;
@@ -30,6 +36,8 @@ export function NewInvoiceFlow({
   const [clientName, setClientName] = useState(prefillClient?.clientName ?? "");
   const [jobPreset, setJobPreset] = useState<string | null>(null);
   const [description, setDescription] = useState("");
+  const [dueInDays, setDueInDays] = useState(0);
+  const [showDetails, setShowDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sentUrl, setSentUrl] = useState<string | null>(null);
@@ -65,6 +73,8 @@ export function NewInvoiceFlow({
     setClientName("");
     setJobPreset(null);
     setDescription("");
+    setDueInDays(0);
+    setShowDetails(false);
     setError(null);
     setSentUrl(null);
     setCopied(false);
@@ -82,6 +92,7 @@ export function NewInvoiceFlow({
         clientName,
         description,
         amount: (cents / 100).toFixed(2),
+        dueInDays,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -128,6 +139,55 @@ export function NewInvoiceFlow({
       ))}
     </div>
   );
+
+  const dueLabel = DUE_PRESETS.find((preset) => preset.days === dueInDays)?.label ?? "On receipt";
+
+  // Optional fields stay collapsed so the common case — amount, who, what —
+  // is still three taps on a phone.
+  const renderDetails = (inputBg: string) =>
+    showDetails ? (
+      <div className="flex flex-col gap-4 mb-4">
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span>
+            Client name <span className="text-muted">(optional)</span>
+          </span>
+          <input
+            type="text"
+            value={clientName}
+            onChange={(e) => setClientName(e.target.value)}
+            placeholder="Sam Rivera"
+            className={`rounded-xl border border-line ${inputBg} px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent`}
+          />
+        </label>
+        <div>
+          <p className="text-xs uppercase tracking-wide text-muted mb-2">Payment due</p>
+          <div className="flex gap-2 flex-wrap">
+            {DUE_PRESETS.map((preset) => (
+              <button
+                key={preset.days}
+                type="button"
+                onClick={() => setDueInDays(preset.days)}
+                className={`rounded-full px-4 py-2 text-sm font-medium border ${
+                  dueInDays === preset.days
+                    ? "bg-accent text-accent-contrast border-accent"
+                    : "bg-card text-foreground border-line"
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    ) : (
+      <button
+        type="button"
+        onClick={() => setShowDetails(true)}
+        className="text-sm font-medium text-accent mb-4 self-start"
+      >
+        + Add details
+      </button>
+    );
 
   const recentClientChips = recentClients.length > 0 && (
     <div className="mb-5">
@@ -279,6 +339,7 @@ export function NewInvoiceFlow({
                 className="rounded-xl border border-line bg-card px-4 py-3 text-base mb-4 focus:outline-none focus:ring-2 focus:ring-accent"
               />
             )}
+            {renderDetails("bg-card")}
             <div className="flex-1" />
             <button
               type="button"
@@ -307,6 +368,10 @@ export function NewInvoiceFlow({
               <div className="flex justify-between text-sm py-2 border-t border-line">
                 <span className="text-muted">To</span>
                 <span className="font-medium">{clientName || clientEmail}</span>
+              </div>
+              <div className="flex justify-between text-sm py-2 border-t border-line">
+                <span className="text-muted">Due</span>
+                <span>{dueLabel}</span>
               </div>
               <div className="flex justify-between text-sm py-2 border-t border-line">
                 <span className="text-muted">Platform fee ({PLATFORM_FEE_PERCENT}%)</span>
@@ -388,6 +453,8 @@ export function NewInvoiceFlow({
                   className="rounded-xl border border-line bg-background px-4 py-3 text-base mb-4 focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               )}
+
+              <div className="flex flex-col">{renderDetails("bg-background")}</div>
 
               <div className="my-5">{feeBreakdown}</div>
 

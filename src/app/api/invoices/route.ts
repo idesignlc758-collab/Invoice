@@ -17,7 +17,12 @@ export async function POST(request: Request) {
   const clientName = body.clientName ? String(body.clientName).trim() : null;
   const description = String(body.description ?? "").trim();
   const amountDollars = Number(body.amount);
-  const dueDateStr = body.dueDate ? String(body.dueDate) : null;
+  // Stripe requires days_until_due whenever collection_method is send_invoice.
+  // 0 means "due on receipt", which is the default the keypad flow sends.
+  const requestedDays = Number(body.dueInDays);
+  const dueInDays = Number.isFinite(requestedDays)
+    ? Math.min(365, Math.max(0, Math.round(requestedDays)))
+    : 0;
 
   if (!clientEmail || !description || !Number.isFinite(amountDollars) || amountDollars <= 0) {
     return NextResponse.json(
@@ -43,12 +48,10 @@ export async function POST(request: Request) {
     description,
   });
 
-  const dueDateEpoch = dueDateStr ? Math.floor(new Date(dueDateStr).getTime() / 1000) : undefined;
-
   const invoice = await stripe.invoices.create({
     customer: customer.id,
     collection_method: "send_invoice",
-    due_date: dueDateEpoch,
+    days_until_due: dueInDays,
     pending_invoice_items_behavior: "include",
     transfer_data: { destination: acct },
     application_fee_amount: feeCents,
@@ -72,7 +75,9 @@ export async function POST(request: Request) {
       currency,
       status: "open",
       hostedInvoiceUrl: sent.hosted_invoice_url ?? null,
-      dueDate: dueDateStr ? new Date(dueDateStr) : null,
+      // Read the due date back off the finalized invoice so it matches what
+      // Stripe actually put on the document, not a locally guessed timestamp.
+      dueDate: sent.due_date ? new Date(sent.due_date * 1000) : null,
     },
   });
 
