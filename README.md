@@ -12,7 +12,7 @@ in the plan artifact shared alongside this repo.
 
 - Next.js (App Router) + TypeScript + Tailwind CSS
 - Prisma + Turso (libSQL)
-- Auth.js (Credentials provider)
+- Clerk (hosted auth)
 - Stripe (Connect, Invoicing)
 - Nodemailer via Mailtrap for the "you got paid" notification
 
@@ -34,7 +34,7 @@ in the plan artifact shared alongside this repo.
    - `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` — from a [Turso](https://turso.tech) database (`turso db create`, `turso db tokens create`)
    - `STRIPE_SECRET_KEY` — from your [test-mode API keys](https://dashboard.stripe.com/test/apikeys)
    - `STRIPE_WEBHOOK_SECRET` — see below
-   - `NEXTAUTH_SECRET` — generate with `npx auth secret`
+   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` — from your [Clerk dashboard](https://dashboard.clerk.com) API Keys page
    - `MAILTRAP_*` — from your Mailtrap sending/sandbox inbox
    - `NEXT_PUBLIC_APP_URL` — `http://localhost:3000` for local dev
 
@@ -68,7 +68,7 @@ in the plan artifact shared alongside this repo.
 
 ## Manual end-to-end test (test mode)
 
-1. Sign up at `/signup`.
+1. Sign up at `/signup` (Clerk's hosted sign-up form).
 2. From the dashboard, click **Connect with Stripe** and complete Stripe's
    test-mode onboarding (use their test data — e.g. SSN `000-00-0000`, any
    future date for DOB, test bank account `000123456789` / routing `110000000`).
@@ -89,10 +89,10 @@ in the plan artifact shared alongside this repo.
   is a later addition, not a blocker for the first release.
 - `src/generated/prisma` is generated on `npm install` (via `postinstall`) and
   is gitignored — never edit it directly.
-- No login is currently required to view `/dashboard` or `/invoices/new` —
-  they fall back to a seeded demo account (`src/lib/current-user.ts`) when
-  there's no session, so the UI can be previewed without signing up. Real
-  signup/login still works and takes priority when a session exists.
+- `/dashboard` and `/invoices/new` require a signed-in Clerk session
+  (enforced by `middleware.ts`). On first sign-in, a local `User` row is
+  lazily created (`src/lib/current-user.ts`) keyed by Clerk's `userId`,
+  starting with a genuinely empty dashboard — no demo data is seeded.
 - Going live means switching `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` to
   live-mode values and updating the webhook endpoint in the Stripe Dashboard
   to point at your deployed URL.

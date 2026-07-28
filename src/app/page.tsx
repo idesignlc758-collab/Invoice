@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 
 export default async function HomePage() {
-  const session = await auth();
-  if (session) redirect("/dashboard");
+  const { userId } = await auth();
+  if (userId) redirect("/dashboard");
 
   return (
     <main className="flex-1 flex items-center justify-center px-6 py-16">

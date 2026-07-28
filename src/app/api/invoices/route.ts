@@ -1,15 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { stripe, calculateFeeAmount } from "@/lib/stripe";
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  }
-
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: session.user.id } });
+  const user = await getCurrentUser();
   if (user.onboardingStatus !== "ready" || !user.stripeAccountId) {
     return NextResponse.json(
       { error: "Connect your Stripe account before sending invoices." },

@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/current-user";
 import { stripe } from "@/lib/stripe";
 
 export async function GET() {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_APP_URL));
-  }
-
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: session.user.id } });
+  const user = await getCurrentUser();
   if (!user.stripeAccountId) {
     return NextResponse.redirect(new URL("/dashboard", process.env.NEXT_PUBLIC_APP_URL));
   }

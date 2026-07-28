@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Manrope } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
-import { Providers } from "@/components/providers";
 
 const body = Inter({
   variable: "--font-body",
@@ -35,10 +35,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${body.variable} ${heading.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans">
-        <Providers>{children}</Providers>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className={`${body.variable} ${heading.variable} h-full antialiased`}>
+        <body className="min-h-full flex flex-col font-sans">{children}</body>
+      </html>
+    </ClerkProvider>
   );
 }

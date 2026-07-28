@@ -6,7 +6,8 @@ export async function GET() {
   const names = [
     "TURSO_DATABASE_URL",
     "TURSO_AUTH_TOKEN",
-    "NEXTAUTH_SECRET",
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+    "CLERK_SECRET_KEY",
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET",
   ];

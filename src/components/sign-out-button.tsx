@@ -1,14 +1,11 @@
 "use client";
 
-import { signOut } from "next-auth/react";
+import { SignOutButton as ClerkSignOutButton } from "@clerk/nextjs";
 
 export function SignOutButton() {
   return (
-    <button
-      onClick={() => signOut({ callbackUrl: "/" })}
-      className="text-sm text-muted hover:text-foreground"
-    >
-      Log out
-    </button>
+    <ClerkSignOutButton redirectUrl="/">
+      <button className="text-sm text-muted hover:text-foreground">Log out</button>
+    </ClerkSignOutButton>
   );
 }
