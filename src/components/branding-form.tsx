@@ -1,5 +1,6 @@
 "use client";
 
+import { upload } from "@vercel/blob/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatCents } from "@/lib/format";
@@ -43,6 +44,7 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
@@ -77,23 +79,33 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
     if (!file) return;
     setError(null);
     setSaved(false);
+    setUploadProgress(0);
     if (file.size > 20 * 1024 * 1024) {
       setError("Logo must be 20 MB or smaller.");
       return;
     }
-
-    setUploading(true);
-    const form = new FormData();
-    form.append("logo", file);
-    const res = await fetch("/api/branding/logo", { method: "POST", body: form });
-    const data = await res.json().catch(() => ({}));
-    setUploading(false);
-
-    if (!res.ok) {
-      setError(data.error ?? "Could not upload logo.");
+    if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) {
+      setError("Upload a PNG, JPG, WebP, or GIF logo.");
       return;
     }
-    setLogoUrl(data.logoUrl);
+
+    setUploading(true);
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+      const blob = await upload(`branding/logos/${Date.now()}-${safeName}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/branding/logo",
+        multipart: true,
+        contentType: file.type,
+        onUploadProgress: (progress) => setUploadProgress(Math.round(progress.percentage)),
+      });
+      setLogoUrl(blob.url);
+      setUploadProgress(100);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Could not upload logo.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   const displayName = businessName || "Your business";
@@ -124,7 +136,7 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
                 </span>
               )}
               <label className="flex min-h-12 cursor-pointer items-center rounded-2xl border border-line px-4 text-sm font-medium hover:bg-line/40">
-                {uploading ? "Uploading..." : "Upload logo"}
+                {uploading ? `Uploading ${uploadProgress}%` : "Upload logo"}
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/webp,image/gif"
