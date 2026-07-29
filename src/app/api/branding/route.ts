@@ -15,6 +15,12 @@ export async function POST(request: Request) {
   const brandColor = safeColor(body.brandColor);
   const supportEmail = String(body.supportEmail ?? "").trim() || null;
   const website = String(body.website ?? "").trim() || null;
+  const addressLine1 = String(body.addressLine1 ?? "").trim() || null;
+  const addressLine2 = String(body.addressLine2 ?? "").trim() || null;
+  const city = String(body.city ?? "").trim() || null;
+  const state = String(body.state ?? "").trim() || null;
+  const postalCode = String(body.postalCode ?? "").trim() || null;
+  const country = String(body.country ?? "").trim() || null;
   const invoiceFooter = String(body.invoiceFooter ?? "").trim() || null;
   const defaultTermsDays = Math.min(365, Math.max(0, Math.round(Number(body.defaultTermsDays) || 0)));
 
@@ -26,6 +32,12 @@ export async function POST(request: Request) {
       brandColor,
       supportEmail,
       website,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      postalCode,
+      country,
       invoiceFooter,
       defaultTermsDays,
     },
@@ -36,6 +48,12 @@ export async function POST(request: Request) {
       brandColor,
       supportEmail,
       website,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      postalCode,
+      country,
       invoiceFooter,
       defaultTermsDays,
     },

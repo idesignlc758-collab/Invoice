@@ -13,6 +13,22 @@ function formatDate(date: Date | null) {
   }).format(date);
 }
 
+function compactAddress(invoice: {
+  brandAddressLine1: string | null;
+  brandAddressLine2: string | null;
+  brandCity: string | null;
+  brandState: string | null;
+  brandPostalCode: string | null;
+  brandCountry: string | null;
+}) {
+  return [
+    invoice.brandAddressLine1,
+    invoice.brandAddressLine2,
+    [invoice.brandCity, invoice.brandState, invoice.brandPostalCode].filter(Boolean).join(", "),
+    invoice.brandCountry,
+  ].filter(Boolean);
+}
+
 export default async function PublicInvoicePage({
   params,
 }: {
@@ -29,11 +45,12 @@ export default async function PublicInvoicePage({
   const brandColor = invoice.brandColor ?? "#c81010";
   const businessName = invoice.brandBusinessName ?? "Your service provider";
   const canPay = invoice.status === "open" && Boolean(invoice.hostedInvoiceUrl);
+  const address = compactAddress(invoice);
 
   return (
-    <main className="min-h-screen bg-background px-5 py-6 text-foreground">
-      <section className="mx-auto flex w-full max-w-xl flex-col gap-5">
-        <div className="rounded-[2rem] border border-line bg-card p-5 md:p-7">
+    <main className="min-h-screen bg-background px-5 py-6 text-foreground md:py-10">
+      <section className="mx-auto flex w-full max-w-2xl flex-col gap-5">
+        <div className="rounded-[1.75rem] border border-line bg-card p-5 shadow-[0_18px_60px_-42px_rgba(0,0,0,0.55)] md:p-7">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               {invoice.brandLogoUrl ? (
@@ -54,6 +71,9 @@ export default async function PublicInvoicePage({
               <div className="min-w-0">
                 <p className="truncate font-display text-xl font-extrabold">{businessName}</p>
                 <p className="truncate text-sm text-muted">{invoice.brandSupportEmail}</p>
+                {address.length > 0 && (
+                  <p className="mt-1 line-clamp-2 text-xs text-muted">{address.join(" - ")}</p>
+                )}
               </div>
             </div>
             <StatusPill status={invoice.status} />
@@ -70,17 +90,29 @@ export default async function PublicInvoicePage({
             </p>
           </div>
 
-          <div className="mt-7 rounded-3xl border border-line bg-background p-4">
-            <div className="flex justify-between gap-4 text-sm">
-              <span className="text-muted">Due</span>
-              <span>{formatDate(invoice.dueDate)}</span>
+          <div className="mt-7 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-line bg-background p-4">
+              <p className="text-xs uppercase tracking-wide text-muted">Service provider</p>
+              <p className="mt-2 font-medium">{businessName}</p>
+              {address.map((line) => (
+                <p key={line} className="text-sm text-muted">
+                  {line}
+                </p>
+              ))}
             </div>
-            {invoice.stripeNumber && (
+            <div className="rounded-2xl border border-line bg-background p-4">
+              <p className="text-xs uppercase tracking-wide text-muted">Invoice details</p>
               <div className="mt-2 flex justify-between gap-4 text-sm">
-                <span className="text-muted">Invoice</span>
-                <span>{invoice.stripeNumber}</span>
+                <span className="text-muted">Due</span>
+                <span>{formatDate(invoice.dueDate)}</span>
               </div>
-            )}
+              {invoice.stripeNumber && (
+                <div className="mt-2 flex justify-between gap-4 text-sm">
+                  <span className="text-muted">Invoice</span>
+                  <span>{invoice.stripeNumber}</span>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="mt-4 rounded-3xl border border-line bg-background p-4">
@@ -126,13 +158,21 @@ export default async function PublicInvoicePage({
               className="mt-6 flex min-h-14 items-center justify-center rounded-2xl font-bold text-white"
               style={{ backgroundColor: brandColor }}
             >
-              Pay securely
+              Pay securely with Stripe
             </a>
           ) : (
             <div className="mt-6 rounded-2xl bg-line px-4 py-3 text-center text-sm text-muted">
               This invoice is not currently payable.
             </div>
           )}
+
+          <div className="mt-3 rounded-2xl bg-background px-4 py-3 text-center">
+            <p className="text-xs font-medium text-foreground">Secure checkout powered by Stripe</p>
+            <p className="mt-1 text-xs text-muted">
+              Available methods can include cards, Link, ACH/bank debit, Cash App Pay, and other
+              Stripe-enabled payment options.
+            </p>
+          </div>
 
           {invoice.invoicePdfUrl && (
             <a
@@ -146,7 +186,8 @@ export default async function PublicInvoicePage({
           )}
 
           <p className="mt-5 text-center text-xs text-muted">
-            {invoice.brandFooter ?? "Payment is processed securely by iDesignLC."}
+            {invoice.brandFooter ??
+              "Secure payment processed by iDesignLC Agency in partnership with Stripe."}
           </p>
         </div>
 

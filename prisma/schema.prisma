@@ -71,6 +71,12 @@ model BusinessProfile {
   brandColor        String   @default("#c81010")
   supportEmail      String?
   website           String?
+  addressLine1      String?
+  addressLine2      String?
+  city              String?
+  state             String?
+  postalCode        String?
+  country           String?
   invoiceFooter     String?
   defaultTermsDays  Int      @default(0)
   createdAt         DateTime @default(now())
@@ -104,6 +110,12 @@ model Invoice {
   brandLogoUrl     String?
   brandColor       String?
   brandSupportEmail String?
+  brandAddressLine1 String?
+  brandAddressLine2 String?
+  brandCity        String?
+  brandState       String?
+  brandPostalCode  String?
+  brandCountry     String?
   brandFooter      String?
   dueDate          DateTime?
   paidAt           DateTime?

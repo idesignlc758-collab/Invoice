@@ -56,10 +56,10 @@ export default async function DashboardPage({
   const paidCount = user.invoices.filter((i) => i.status === "paid").length;
   const recentClients = getRecentClients(user.invoices, 6);
   const recentInvoices = user.invoices.slice(0, 5);
-  const brandReady = Boolean(profile?.businessName);
+  const brandReady = Boolean(profile?.businessName && profile?.supportEmail);
 
   const connectBanner = !isReady && (
-    <section className="rounded-3xl border border-line bg-card p-5 md:p-6">
+    <section className="rounded-2xl border border-line bg-card p-5 md:p-6">
       <h2 className="font-display text-xl font-bold">Get set up to invoice</h2>
       <p className="mt-1 text-sm text-muted">
         {user.stripeAccountId
@@ -131,27 +131,32 @@ export default async function DashboardPage({
       {isReady && (
         <>
           <section className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
-            <div className="elevated rounded-3xl bg-foreground p-6 text-background md:p-7">
+            <div className="elevated rounded-2xl border border-line bg-card p-5 md:p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm opacity-70">Awaiting payment</p>
-                  <p className="mt-2 font-display text-5xl font-extrabold tracking-tight tabular-nums md:text-6xl">
+                  <p className="text-sm text-muted">Awaiting payment</p>
+                  <p className="mt-2 font-display text-4xl font-extrabold tracking-tight tabular-nums md:text-5xl">
                     {formatCents(openCents, "usd")}
                   </p>
+                  <p className="mt-2 text-sm text-muted">
+                    {openInvoices.length === 1
+                      ? "1 invoice is ready for follow-up."
+                      : `${openInvoices.length} invoices are ready for follow-up.`}
+                  </p>
                 </div>
-                <span className="rounded-2xl bg-background/10 px-3 py-1.5 text-xs font-medium">
+                <span className="rounded-full bg-line px-3 py-1.5 text-xs font-medium text-foreground">
                   {openInvoices.length} open
                 </span>
               </div>
-              <div className="mt-7 grid grid-cols-2 gap-4 border-t border-background/15 pt-5">
-                <div>
-                  <p className="text-xs opacity-65">Collected this month</p>
+              <div className="mt-6 grid grid-cols-2 gap-3 border-t border-line pt-4">
+                <div className="rounded-2xl bg-background p-4">
+                  <p className="text-xs text-muted">Collected this month</p>
                   <p className="mt-1 font-display text-xl font-bold tabular-nums">
                     {formatCents(monthCents, "usd")}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs opacity-65">Collected today</p>
+                <div className="rounded-2xl bg-background p-4">
+                  <p className="text-xs text-muted">Collected today</p>
                   <p className="mt-1 font-display text-xl font-bold tabular-nums">
                     {formatCents(todayCents, "usd")}
                   </p>
@@ -159,13 +164,15 @@ export default async function DashboardPage({
               </div>
             </div>
 
-            <div className="rounded-3xl border border-line bg-card p-5">
-              <p className="font-display text-lg font-bold">Setup</p>
+            <div className="rounded-2xl border border-line bg-card p-5">
+              <p className="font-display text-lg font-bold">Account readiness</p>
               <div className="mt-4 flex flex-col gap-3 text-sm">
                 <Link href="/branding" className="flex items-center justify-between rounded-2xl bg-background p-4">
                   <span>
                     <span className="block font-medium">White-label profile</span>
-                    <span className="text-muted">{brandReady ? profile?.businessName : "Add logo and brand"}</span>
+                    <span className="text-muted">
+                      {brandReady ? profile?.businessName : "Add brand name and billing email"}
+                    </span>
                   </span>
                   <span className={brandReady ? "text-success" : "text-pending"}>
                     {brandReady ? "Ready" : "Needed"}
@@ -189,7 +196,7 @@ export default async function DashboardPage({
               ["Products active", productCount.toString()],
               ["Net after fee", formatCents(monthNetCents, "usd")],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-3xl border border-line bg-card p-5">
+              <div key={label} className="rounded-2xl border border-line bg-card p-5">
                 <p className="text-sm text-muted">{label}</p>
                 <p className="mt-2 font-display text-2xl font-extrabold tabular-nums">{value}</p>
               </div>
@@ -204,7 +211,7 @@ export default async function DashboardPage({
                   View all
                 </Link>
               </div>
-              <div className="overflow-hidden rounded-3xl border border-line bg-card">
+              <div className="overflow-hidden rounded-2xl border border-line bg-card">
                 {recentInvoices.length === 0 && (
                   <p className="px-5 py-10 text-center text-sm text-muted">
                     No invoices yet. Send your first one from the New invoice button.
@@ -243,7 +250,7 @@ export default async function DashboardPage({
                   Products
                 </Link>
               </div>
-              <div className="rounded-3xl border border-line bg-card p-4">
+              <div className="rounded-2xl border border-line bg-card p-4">
                 {recentClients.length === 0 && (
                   <p className="py-8 text-center text-sm text-muted">Clients appear after your first invoice.</p>
                 )}

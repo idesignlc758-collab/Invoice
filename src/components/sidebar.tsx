@@ -36,14 +36,20 @@ export function Sidebar() {
   return (
     <>
       <aside
-        className={`hidden md:flex min-h-screen flex-shrink-0 flex-col border-r border-line bg-background/85 px-4 py-5 backdrop-blur transition-[width] ${
-          collapsed ? "w-20" : "w-64"
+        className={`hidden min-h-screen flex-shrink-0 flex-col border-r border-line bg-background/85 py-5 backdrop-blur transition-[width] md:flex ${
+          collapsed ? "w-[4.75rem] px-3" : "w-64 px-4"
         }`}
       >
-        <div className="mb-7 flex items-center justify-between gap-2">
+        <div
+          className={`mb-7 flex ${
+            collapsed ? "flex-col items-center gap-3" : "items-center justify-between gap-2"
+          }`}
+        >
           <Link
             href="/dashboard"
-            className="flex min-w-0 items-center gap-2 font-display text-lg font-extrabold"
+            className={`flex min-w-0 items-center gap-2 font-display text-lg font-extrabold ${
+              collapsed ? "justify-center" : ""
+            }`}
             aria-label="Checkout overview"
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-accent text-sm text-accent-contrast">
@@ -63,8 +69,8 @@ export function Sidebar() {
 
         <Link
           href="/invoices/new"
-          className={`mb-7 flex min-h-12 items-center justify-center rounded-2xl bg-accent px-4 text-sm font-bold text-accent-contrast ${
-            collapsed ? "w-12 px-0" : "w-full"
+          className={`mb-7 flex min-h-12 items-center justify-center rounded-2xl bg-accent text-sm font-bold text-accent-contrast ${
+            collapsed ? "w-full px-0" : "w-full px-4"
           }`}
           title="New invoice"
         >
@@ -79,11 +85,11 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 title={item.label}
-                className={`flex min-h-11 items-center gap-3 rounded-2xl px-3 font-medium ${
+                className={`flex min-h-11 items-center gap-3 rounded-2xl font-medium ${
                   active
                     ? "bg-line/70 text-foreground"
                     : "text-muted hover:bg-line/40 hover:text-foreground"
-                }`}
+                } ${collapsed ? "justify-center px-0" : "px-3"}`}
               >
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-line text-[11px] font-bold">
                   {item.icon}
@@ -97,7 +103,9 @@ export function Sidebar() {
             target="_blank"
             rel="noopener noreferrer"
             title="Stripe dashboard"
-            className="flex min-h-11 items-center gap-3 rounded-2xl px-3 font-medium text-muted hover:bg-line/40 hover:text-foreground"
+            className={`flex min-h-11 items-center gap-3 rounded-2xl font-medium text-muted hover:bg-line/40 hover:text-foreground ${
+              collapsed ? "justify-center px-0" : "px-3"
+            }`}
           >
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-line text-[11px] font-bold">
               St
@@ -119,7 +127,9 @@ export function Sidebar() {
           </nav>
         )}
 
-        <SignOutButton />
+        <div className={collapsed ? "flex justify-center" : ""}>
+          <SignOutButton compact={collapsed} />
+        </div>
       </aside>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-line bg-background/95 px-3 pb-safe pt-2 text-[11px] font-medium backdrop-blur md:hidden">

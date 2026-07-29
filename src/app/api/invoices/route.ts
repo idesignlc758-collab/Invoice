@@ -84,6 +84,24 @@ async function ensureStripeProduct(params: {
   return { stripeProductId: stripeProduct.id, stripePriceId: stripePrice.id };
 }
 
+function formatAddress(profile: {
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  state: string | null;
+  postalCode: string | null;
+  country: string | null;
+}) {
+  return [
+    profile.addressLine1,
+    profile.addressLine2,
+    [profile.city, profile.state, profile.postalCode].filter(Boolean).join(", "),
+    profile.country,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+}
+
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (user.onboardingStatus !== "ready" || !user.stripeAccountId) {
@@ -245,8 +263,16 @@ export async function POST(request: Request) {
   const taxRateIds = taxPercent > 0 ? [await resolveTaxRateId(taxPercent)] : undefined;
   const profile = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
   const brandBusinessName = profile?.businessName ?? businessName ?? user.email.split("@")[0];
+  const providerAddress = profile ? formatAddress(profile) : "";
   const brandFooter =
-    profile?.invoiceFooter ?? `Payment is processed securely by iDesignLC for ${brandBusinessName}.`;
+    profile?.invoiceFooter ??
+    `Secure payment processed by iDesignLC Agency in partnership with Stripe for ${brandBusinessName}.`;
+  const customFields = [
+    { name: "Service provider", value: brandBusinessName.slice(0, 140) },
+    ...(providerAddress
+      ? [{ name: "Provider address", value: providerAddress.slice(0, 140) }]
+      : []),
+  ];
 
   const invoice = await stripe.invoices.create({
     customer: customerId,
@@ -256,7 +282,7 @@ export async function POST(request: Request) {
     default_tax_rates: taxRateIds,
     transfer_data: { destination: acct },
     application_fee_amount: feeCents,
-    custom_fields: [{ name: "Service provider", value: brandBusinessName.slice(0, 140) }],
+    custom_fields: customFields,
     footer: brandFooter.slice(0, 500),
   });
 
@@ -310,6 +336,12 @@ export async function POST(request: Request) {
       brandLogoUrl: profile?.logoUrl ?? null,
       brandColor: profile?.brandColor ?? "#c81010",
       brandSupportEmail: profile?.supportEmail ?? user.email,
+      brandAddressLine1: profile?.addressLine1 ?? null,
+      brandAddressLine2: profile?.addressLine2 ?? null,
+      brandCity: profile?.city ?? null,
+      brandState: profile?.state ?? null,
+      brandPostalCode: profile?.postalCode ?? null,
+      brandCountry: profile?.country ?? null,
       brandFooter,
       dueDate: sent.due_date ? new Date(sent.due_date * 1000) : null,
       lineItems: {
