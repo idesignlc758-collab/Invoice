@@ -15,11 +15,25 @@ export default async function NewInvoicePage({
     take: 20,
     select: { clientEmail: true, clientName: true, description: true, amount: true },
   });
+  const products = await prisma.product.findMany({
+    where: { userId: user.id, active: true },
+    orderBy: [{ timesUsed: "desc" }, { updatedAt: "desc" }],
+    take: 24,
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      unitAmount: true,
+      currency: true,
+      type: true,
+      taxable: true,
+    },
+  });
 
   const recentClients = getRecentClients(invoices, 5);
 
   const { client } = await searchParams;
   const prefill = client ? recentClients.find((c) => c.clientEmail === client) ?? null : null;
 
-  return <NewInvoiceFlow recentClients={recentClients} prefillClient={prefill} />;
+  return <NewInvoiceFlow recentClients={recentClients} products={products} prefillClient={prefill} />;
 }

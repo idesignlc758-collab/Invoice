@@ -18,14 +18,76 @@ model User {
   onboardingStatus String    @default("not_started") // not_started | pending | ready
   createdAt        DateTime  @default(now())
   invoices         Invoice[]
+  clients          Client[]
+  products         Product[]
+  businessProfile  BusinessProfile?
+}
+
+model Client {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id])
+  email            String
+  name             String?
+  stripeCustomerId String?
+  lastInvoicedAt   DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  invoices         Invoice[]
+
+  @@unique([userId, email])
+  @@index([userId])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  stripeProductId String?
+  stripePriceId   String?
+  name        String
+  description String?
+  unitAmount  Int
+  currency    String   @default("usd")
+  type        String   @default("service") // service | product | hourly | custom
+  taxable     Boolean  @default(true)
+  active      Boolean  @default(true)
+  timesUsed   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lineItems InvoiceLineItem[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model BusinessProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id])
+  businessName      String?
+  logoUrl           String?
+  brandColor        String   @default("#c81010")
+  supportEmail      String?
+  website           String?
+  invoiceFooter     String?
+  defaultTermsDays  Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Invoice {
   id               String    @id @default(cuid())
   userId           String
   user             User      @relation(fields: [userId], references: [id])
+  clientId         String?
+  client           Client?   @relation(fields: [clientId], references: [id])
+  publicToken      String    @unique @default(cuid())
   stripeInvoiceId  String    @unique
   stripeCustomerId String
+  invoicePdfUrl    String?
+  stripeNumber     String?
   clientEmail      String
   clientName       String?
   description      String // summary line for list views; full detail lives in lineItems
@@ -37,6 +99,12 @@ model Invoice {
   currency         String    @default("usd")
   status           String    @default("draft") // draft | open | paid | void | uncollectible | payment_failed
   hostedInvoiceUrl String?
+  deliveryMode     String    @default("stripe_email") // stripe_email | branded_email | manual_link
+  brandBusinessName String?
+  brandLogoUrl     String?
+  brandColor       String?
+  brandSupportEmail String?
+  brandFooter      String?
   dueDate          DateTime?
   paidAt           DateTime?
   createdAt        DateTime  @default(now())
@@ -50,13 +118,18 @@ model InvoiceLineItem {
   id          String  @id @default(cuid())
   invoiceId   String
   invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id])
   description String
+  productName String?
+  productType String?
   quantity    Int     @default(1)
   unitAmount  Int // per unit, in cents
   amount      Int // quantity * unitAmount, in cents
   position    Int     @default(0)
 
   @@index([invoiceId])
+  @@index([productId])
 }
 
 model WebhookEvent {

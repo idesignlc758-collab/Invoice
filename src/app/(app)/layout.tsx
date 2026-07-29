@@ -1,3 +1,5 @@
+import { AppShell } from "@/components/app-shell";
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return <div className="flex-1 flex flex-col">{children}</div>;
+  return <AppShell>{children}</AppShell>;
 }

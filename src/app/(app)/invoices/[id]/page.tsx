@@ -34,6 +34,8 @@ export default async function InvoiceDetailPage({
 
   const netCents = invoice.amount - invoice.feeAmount;
   const currency = invoice.currency;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const publicInvoiceUrl = appUrl ? `${appUrl}/pay/${invoice.publicToken}` : `/pay/${invoice.publicToken}`;
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 py-8 md:max-w-lg md:py-12">
@@ -137,6 +139,8 @@ export default async function InvoiceDetailPage({
       <div className="mt-8">
         <InvoiceActions
           hostedInvoiceUrl={invoice.hostedInvoiceUrl}
+          publicInvoiceUrl={publicInvoiceUrl}
+          invoicePdfUrl={invoice.invoicePdfUrl}
           amountLabel={formatCents(invoice.amount, currency)}
         />
       </div>

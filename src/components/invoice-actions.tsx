@@ -4,30 +4,35 @@ import { useState } from "react";
 
 export function InvoiceActions({
   hostedInvoiceUrl,
+  publicInvoiceUrl,
+  invoicePdfUrl,
   amountLabel,
 }: {
   hostedInvoiceUrl: string | null;
+  publicInvoiceUrl: string | null;
+  invoicePdfUrl: string | null;
   amountLabel: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const shareUrl = publicInvoiceUrl ?? hostedInvoiceUrl;
 
-  if (!hostedInvoiceUrl) return null;
+  if (!shareUrl) return null;
 
   async function share() {
-    if (!hostedInvoiceUrl) return;
+    if (!shareUrl) return;
     if (navigator.share) {
       try {
         await navigator.share({
           title: "Invoice",
           text: `Pay ${amountLabel}`,
-          url: hostedInvoiceUrl,
+          url: shareUrl,
         });
         return;
       } catch {
-        // Share sheet dismissed — fall through to copying instead.
+        // Share sheet dismissed, so copy instead.
       }
     }
-    await navigator.clipboard.writeText(hostedInvoiceUrl);
+    await navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -39,16 +44,36 @@ export function InvoiceActions({
         onClick={share}
         className="min-h-12 rounded-full bg-accent font-display font-bold text-accent-contrast"
       >
-        {copied ? "Link copied ✓" : "Share payment link"}
+        {copied ? "Link copied" : "Share branded invoice"}
       </button>
       <a
-        href={hostedInvoiceUrl}
+        href={shareUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="flex min-h-12 items-center justify-center rounded-full border border-line font-medium"
       >
-        {"Open invoice ↗︎"}
+        Open branded invoice
       </a>
+      {hostedInvoiceUrl && hostedInvoiceUrl !== shareUrl && (
+        <a
+          href={hostedInvoiceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex min-h-12 items-center justify-center rounded-full border border-line text-sm font-medium"
+        >
+          Open Stripe payment page
+        </a>
+      )}
+      {invoicePdfUrl && (
+        <a
+          href={invoicePdfUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex min-h-12 items-center justify-center rounded-full border border-line text-sm font-medium"
+        >
+          Download PDF
+        </a>
+      )}
     </div>
   );
 }

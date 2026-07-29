@@ -22,6 +22,16 @@ type RecentClient = {
   amount: number;
 };
 
+type SavedProduct = {
+  id: string;
+  name: string;
+  description: string | null;
+  unitAmount: number;
+  currency: string;
+  type: string;
+  taxable: boolean;
+};
+
 type Step = "amount" | "details" | "review" | "sent";
 
 // The keypad drives the first line item. Anything added after it lives here,
@@ -31,13 +41,19 @@ type ExtraItem = {
   description: string;
   quantity: number;
   unitCents: number;
+  productId: string | null;
+  productType: string;
+  taxable: boolean;
+  saveProduct: boolean;
 };
 
 export function NewInvoiceFlow({
   recentClients,
+  products,
   prefillClient,
 }: {
   recentClients: RecentClient[];
+  products: SavedProduct[];
   prefillClient?: RecentClient | null;
 }) {
   const [step, setStep] = useState<Step>("amount");
@@ -46,6 +62,10 @@ export function NewInvoiceFlow({
   const [clientName, setClientName] = useState(prefillClient?.clientName ?? "");
   const [jobPreset, setJobPreset] = useState<string | null>(null);
   const [description, setDescription] = useState("");
+  const [primaryProductId, setPrimaryProductId] = useState<string | null>(null);
+  const [primaryProductType, setPrimaryProductType] = useState("service");
+  const [primaryTaxable, setPrimaryTaxable] = useState(true);
+  const [savePrimaryProduct, setSavePrimaryProduct] = useState(false);
   const [extraItems, setExtraItems] = useState<ExtraItem[]>([]);
   const [taxPercent, setTaxPercent] = useState(0);
   const [dueInDays, setDueInDays] = useState(0);
@@ -87,7 +107,16 @@ export function NewInvoiceFlow({
   function addExtraItem() {
     setExtraItems((items) => [
       ...items,
-      { id: crypto.randomUUID(), description: "", quantity: 1, unitCents: 0 },
+      {
+        id: crypto.randomUUID(),
+        description: "",
+        quantity: 1,
+        unitCents: 0,
+        productId: null,
+        productType: "service",
+        taxable: true,
+        saveProduct: false,
+      },
     ]);
   }
 
@@ -105,6 +134,33 @@ export function NewInvoiceFlow({
     setJobPreset(preset);
     if (preset !== "Custom") setDescription(preset);
     else setDescription("");
+    setPrimaryProductId(null);
+  }
+
+  function pickPrimaryProduct(product: SavedProduct) {
+    setPrimaryProductId(product.id);
+    setPrimaryProductType(product.type);
+    setPrimaryTaxable(product.taxable);
+    setSavePrimaryProduct(false);
+    setDescription(product.name);
+    setCents(product.unitAmount);
+    setJobPreset(null);
+  }
+
+  function pickExtraProduct(id: string, productId: string) {
+    const product = products.find((entry) => entry.id === productId);
+    if (!product) {
+      updateExtraItem(id, { productId: null, saveProduct: false });
+      return;
+    }
+    updateExtraItem(id, {
+      productId: product.id,
+      description: product.name,
+      unitCents: product.unitAmount,
+      productType: product.type,
+      taxable: product.taxable,
+      saveProduct: false,
+    });
   }
 
   function resetFlow() {
@@ -114,6 +170,10 @@ export function NewInvoiceFlow({
     setClientName("");
     setJobPreset(null);
     setDescription("");
+    setPrimaryProductId(null);
+    setPrimaryProductType("service");
+    setPrimaryTaxable(true);
+    setSavePrimaryProduct(false);
     setExtraItems([]);
     setTaxPercent(0);
     setDueInDays(0);
@@ -136,11 +196,23 @@ export function NewInvoiceFlow({
         dueInDays,
         taxPercent,
         items: [
-          { description, quantity: 1, unitAmountCents: cents },
+          {
+            description,
+            quantity: 1,
+            unitAmountCents: cents,
+            productId: primaryProductId,
+            productType: primaryProductType,
+            taxable: primaryTaxable,
+            saveProduct: savePrimaryProduct && !primaryProductId,
+          },
           ...extraItems.map((item) => ({
             description: item.description,
             quantity: item.quantity,
             unitAmountCents: item.unitCents,
+            productId: item.productId,
+            productType: item.productType,
+            taxable: item.taxable,
+            saveProduct: item.saveProduct && !item.productId,
           })),
         ],
       }),
@@ -152,7 +224,7 @@ export function NewInvoiceFlow({
       setError(data.error ?? "Something went wrong. Try again.");
       return;
     }
-    setSentUrl(data.hostedInvoiceUrl ?? null);
+    setSentUrl(data.publicInvoiceUrl ?? data.hostedInvoiceUrl ?? null);
     setStep("sent");
   }
 
@@ -244,7 +316,10 @@ export function NewInvoiceFlow({
           <input
             type="text"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              setPrimaryProductId(null);
+            }}
             placeholder="What are you billing for?"
             className={`min-w-0 flex-1 rounded-lg border border-line ${inputBg} px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent`}
           />
@@ -263,15 +338,42 @@ export function NewInvoiceFlow({
               className="min-w-0 flex-1 bg-transparent text-base tabular-nums focus:outline-none"
             />
           </div>
+          {!primaryProductId && description.trim().length > 0 && cents > 0 && (
+            <label className="flex items-center justify-between gap-3 rounded-xl bg-line/35 px-3 py-2 text-sm">
+              <span>Save as product for next time</span>
+              <input
+                type="checkbox"
+                checked={savePrimaryProduct}
+                onChange={(e) => setSavePrimaryProduct(e.target.checked)}
+                className="h-4 w-4 accent-[var(--accent)]"
+              />
+            </label>
+          )}
         </div>
 
         {extraItems.map((item) => (
           <div key={item.id} className="flex flex-col gap-2 p-3">
+            {products.length > 0 && (
+              <select
+                value={item.productId ?? ""}
+                onChange={(e) => pickExtraProduct(item.id, e.target.value)}
+                className={`rounded-lg border border-line ${inputBg} px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent`}
+              >
+                <option value="">Custom item</option>
+                {products.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name} - {formatCents(product.unitAmount, product.currency)}
+                  </option>
+                ))}
+              </select>
+            )}
             <div className="flex gap-2">
               <input
                 type="text"
                 value={item.description}
-                onChange={(e) => updateExtraItem(item.id, { description: e.target.value })}
+                onChange={(e) =>
+                  updateExtraItem(item.id, { description: e.target.value, productId: null })
+                }
                 placeholder="Description"
                 className={`min-w-0 flex-1 rounded-lg border border-line ${inputBg} px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent`}
               />
@@ -323,6 +425,17 @@ export function NewInvoiceFlow({
                 {formatCents(item.quantity * item.unitCents)}
               </span>
             </div>
+            {!item.productId && item.description.trim().length > 0 && item.unitCents > 0 && (
+              <label className="flex items-center justify-between gap-3 rounded-xl bg-line/35 px-3 py-2 text-sm">
+                <span>Save as product for next time</span>
+                <input
+                  type="checkbox"
+                  checked={item.saveProduct}
+                  onChange={(e) => updateExtraItem(item.id, { saveProduct: e.target.checked })}
+                  className="h-4 w-4 accent-[var(--accent)]"
+                />
+              </label>
+            )}
           </div>
         ))}
       </div>
@@ -428,6 +541,35 @@ export function NewInvoiceFlow({
             </span>
             <span className="text-[11px] text-muted truncate w-full text-center">
               {rc.clientName || rc.clientEmail.split("@")[0]}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const productChips = products.length > 0 && (
+    <div className="mb-5">
+      <p className="text-xs uppercase tracking-wide text-muted mb-2">Products and services</p>
+      <div className="flex gap-3 overflow-x-auto pb-1">
+        {products.slice(0, 8).map((product) => (
+          <button
+            key={product.id}
+            type="button"
+            onClick={() => pickPrimaryProduct(product)}
+            className={`flex min-w-36 flex-shrink-0 flex-col rounded-2xl border p-3 text-left ${
+              primaryProductId === product.id
+                ? "border-accent bg-accent text-accent-contrast"
+                : "border-line bg-card text-foreground"
+            }`}
+          >
+            <span className="truncate text-sm font-semibold">{product.name}</span>
+            <span
+              className={`mt-1 text-xs tabular-nums ${
+                primaryProductId === product.id ? "text-accent-contrast/80" : "text-muted"
+              }`}
+            >
+              {formatCents(product.unitAmount, product.currency)}
             </span>
           </button>
         ))}
@@ -549,6 +691,7 @@ export function NewInvoiceFlow({
               {formatCents(totalCents)}
             </p>
             {recentClientChips}
+            {productChips}
             <label className="flex flex-col gap-1.5 text-sm mb-4">
               Client email
               <input
@@ -569,7 +712,10 @@ export function NewInvoiceFlow({
                 autoFocus
                 placeholder="What are you billing for?"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  setPrimaryProductId(null);
+                }}
                 className="rounded-xl border border-line bg-card px-4 py-3 text-base mb-4 focus:outline-none focus:ring-2 focus:ring-accent"
               />
             )}
@@ -681,6 +827,7 @@ export function NewInvoiceFlow({
               </label>
 
               {recentClientChips}
+              {productChips}
 
               <label className="flex flex-col gap-1.5 text-sm mb-4">
                 Client email
@@ -701,7 +848,10 @@ export function NewInvoiceFlow({
                   type="text"
                   placeholder="What are you billing for?"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    setPrimaryProductId(null);
+                  }}
                   className="rounded-xl border border-line bg-background px-4 py-3 text-base mb-4 focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               )}
