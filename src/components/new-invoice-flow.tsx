@@ -77,7 +77,13 @@ export function NewInvoiceFlow({
 
   const extrasCents = extraItems.reduce((sum, item) => sum + item.quantity * item.unitCents, 0);
   const subtotalCents = cents + extrasCents;
-  const taxCents = Math.round(subtotalCents * (taxPercent / 100));
+  const taxableSubtotalCents =
+    (primaryTaxable ? cents : 0) +
+    extraItems.reduce(
+      (sum, item) => sum + (item.taxable ? item.quantity * item.unitCents : 0),
+      0
+    );
+  const taxCents = Math.round(taxableSubtotalCents * (taxPercent / 100));
   const totalCents = subtotalCents + taxCents;
   // Fee is taken on the pre-tax subtotal; tax passes straight through.
   const feeCents = Math.round(subtotalCents * (PLATFORM_FEE_PERCENT / 100));
@@ -358,6 +364,15 @@ export function NewInvoiceFlow({
               />
             </label>
           )}
+          <label className="flex items-center justify-between gap-3 rounded-xl bg-line/35 px-3 py-2 text-sm">
+            <span>Apply tax to this item</span>
+            <input
+              type="checkbox"
+              checked={primaryTaxable}
+              onChange={(e) => setPrimaryTaxable(e.target.checked)}
+              className="h-4 w-4 accent-[var(--accent)]"
+            />
+          </label>
         </div>
 
         {extraItems.map((item) => (
@@ -445,6 +460,15 @@ export function NewInvoiceFlow({
                 />
               </label>
             )}
+            <label className="flex items-center justify-between gap-3 rounded-xl bg-line/35 px-3 py-2 text-sm">
+              <span>Apply tax to this item</span>
+              <input
+                type="checkbox"
+                checked={item.taxable}
+                onChange={(e) => updateExtraItem(item.id, { taxable: e.target.checked })}
+                className="h-4 w-4 accent-[var(--accent)]"
+              />
+            </label>
           </div>
         ))}
       </div>
@@ -491,6 +515,15 @@ export function NewInvoiceFlow({
                 Save as product
               </label>
             )}
+            <label className="mt-2 flex items-center gap-2 text-sm text-muted">
+              <input
+                type="checkbox"
+                checked={primaryTaxable}
+                onChange={(e) => setPrimaryTaxable(e.target.checked)}
+                className="h-4 w-4 accent-[var(--accent)]"
+              />
+              Apply tax
+            </label>
           </div>
           <div className="flex h-11 items-center justify-center rounded-xl border border-line bg-card text-base tabular-nums text-muted">
             1
@@ -551,6 +584,15 @@ export function NewInvoiceFlow({
                   Save as product
                 </label>
               )}
+              <label className="mt-2 flex items-center gap-2 text-sm text-muted">
+                <input
+                  type="checkbox"
+                  checked={item.taxable}
+                  onChange={(e) => updateExtraItem(item.id, { taxable: e.target.checked })}
+                  className="h-4 w-4 accent-[var(--accent)]"
+                />
+                Apply tax
+              </label>
             </div>
             <input
               type="number"

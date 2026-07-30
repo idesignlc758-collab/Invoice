@@ -78,6 +78,7 @@ model BusinessProfile {
   postalCode        String?
   country           String?
   invoiceFooter     String?
+  clientTerms       String?
   defaultTermsDays  Int      @default(0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -117,6 +118,10 @@ model Invoice {
   brandPostalCode  String?
   brandCountry     String?
   brandFooter      String?
+  clientTerms      String?
+  termsAcceptedAt  DateTime?
+  termsAcceptedIp  String?
+  termsAcceptedUserAgent String?
   dueDate          DateTime?
   paidAt           DateTime?
   createdAt        DateTime  @default(now())

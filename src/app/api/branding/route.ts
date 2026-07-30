@@ -22,6 +22,7 @@ export async function POST(request: Request) {
   const postalCode = String(body.postalCode ?? "").trim() || null;
   const country = String(body.country ?? "").trim() || null;
   const invoiceFooter = String(body.invoiceFooter ?? "").trim() || null;
+  const clientTerms = String(body.clientTerms ?? "").trim().slice(0, 4000) || null;
   const defaultTermsDays = Math.min(365, Math.max(0, Math.round(Number(body.defaultTermsDays) || 0)));
 
   const profile = await prisma.businessProfile.upsert({
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
       postalCode,
       country,
       invoiceFooter,
+      clientTerms,
       defaultTermsDays,
     },
     create: {
@@ -55,6 +57,7 @@ export async function POST(request: Request) {
       postalCode,
       country,
       invoiceFooter,
+      clientTerms,
       defaultTermsDays,
     },
   });

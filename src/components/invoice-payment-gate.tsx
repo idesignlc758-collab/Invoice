@@ -1,0 +1,74 @@
+"use client";
+
+import { useState } from "react";
+
+export function InvoicePaymentGate({
+  hostedInvoiceUrl,
+  publicToken,
+  terms,
+  brandColor,
+}: {
+  hostedInvoiceUrl: string;
+  publicToken: string;
+  terms: string | null;
+  brandColor: string;
+}) {
+  const [accepted, setAccepted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const requiresTerms = Boolean(terms?.trim());
+
+  async function continueToPayment() {
+    if (requiresTerms && !accepted) return;
+    setLoading(true);
+    setError(null);
+
+    if (requiresTerms) {
+      const response = await fetch(`/api/invoices/${publicToken}/accept-terms`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setError(data.error ?? "Could not record your agreement. Try again.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    window.location.assign(hostedInvoiceUrl);
+  }
+
+  return (
+    <div className="mt-6">
+      {requiresTerms && (
+        <div className="mb-4 rounded-2xl border border-line bg-background p-4">
+          <p className="font-display text-base font-bold">Terms and conditions</p>
+          <div className="mt-3 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-xl bg-card p-3 text-sm leading-relaxed text-muted">
+            {terms}
+          </div>
+          <label className="mt-4 flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={accepted}
+              onChange={(event) => setAccepted(event.target.checked)}
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]"
+            />
+            <span>I agree to the terms and conditions for this invoice.</span>
+          </label>
+        </div>
+      )}
+
+      {error && <p className="mb-3 text-sm text-danger">{error}</p>}
+
+      <button
+        type="button"
+        onClick={continueToPayment}
+        disabled={loading || (requiresTerms && !accepted)}
+        className="flex min-h-14 w-full items-center justify-center rounded-2xl font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-45"
+        style={{ backgroundColor: brandColor }}
+      >
+        {loading ? "Opening secure payment..." : "Pay securely with Stripe"}
+      </button>
+    </div>
+  );
+}

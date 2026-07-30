@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatCents } from "@/lib/format";
 import { StatusPill } from "@/components/status-pill";
+import { InvoicePaymentGate } from "@/components/invoice-payment-gate";
 
 function formatDate(date: Date | null) {
   if (!date) return "Due on receipt";
@@ -153,13 +154,12 @@ export default async function PublicInvoicePage({
           </div>
 
           {canPay ? (
-            <a
-              href={invoice.hostedInvoiceUrl!}
-              className="mt-6 flex min-h-14 items-center justify-center rounded-2xl font-bold text-white"
-              style={{ backgroundColor: brandColor }}
-            >
-              Pay securely with Stripe
-            </a>
+            <InvoicePaymentGate
+              hostedInvoiceUrl={invoice.hostedInvoiceUrl!}
+              publicToken={invoice.publicToken}
+              terms={invoice.clientTerms}
+              brandColor={brandColor}
+            />
           ) : (
             <div className="mt-6 rounded-2xl bg-line px-4 py-3 text-center text-sm text-muted">
               This invoice is not currently payable.

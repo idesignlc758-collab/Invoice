@@ -141,7 +141,11 @@ export async function POST(request: Request) {
     (sum, item) => sum + item.quantity * item.unitAmountCents,
     0
   );
-  const taxAmountCents = Math.round(subtotalCents * (taxPercent / 100));
+  const taxableSubtotalCents = items.reduce(
+    (sum, item) => sum + (item.taxable ? item.quantity * item.unitAmountCents : 0),
+    0
+  );
+  const taxAmountCents = Math.round(taxableSubtotalCents * (taxPercent / 100));
   const feeCents = calculateFeeAmount(subtotalCents);
   const acct = user.stripeAccountId;
 
@@ -235,6 +239,8 @@ export async function POST(request: Request) {
       (await stripe.customers.create({ email: clientEmail, name: clientName ?? undefined })).id;
   }
 
+  const taxRateIds = taxPercent > 0 ? [await resolveTaxRateId(taxPercent)] : undefined;
+
   for (const item of resolvedItems) {
     const useSavedPrice =
       item.product?.stripePriceId && item.product.unitAmount === item.unitAmountCents;
@@ -245,6 +251,7 @@ export async function POST(request: Request) {
         description: item.description,
         quantity: item.quantity,
         pricing: { price: item.product!.stripePriceId! },
+        tax_rates: item.taxable ? taxRateIds : [],
       });
       continue;
     }
@@ -257,10 +264,10 @@ export async function POST(request: Request) {
           ? `${item.description} (${item.quantity} x ${formatCents(item.unitAmountCents, currency)})`
           : item.description,
       amount: item.quantity * item.unitAmountCents,
+      tax_rates: item.taxable ? taxRateIds : [],
     });
   }
 
-  const taxRateIds = taxPercent > 0 ? [await resolveTaxRateId(taxPercent)] : undefined;
   const profile = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
   const brandBusinessName = profile?.businessName ?? businessName ?? user.email.split("@")[0];
   const providerAddress = profile ? formatAddress(profile) : "";
@@ -279,7 +286,6 @@ export async function POST(request: Request) {
     collection_method: "send_invoice",
     days_until_due: dueInDays,
     pending_invoice_items_behavior: "include",
-    default_tax_rates: taxRateIds,
     transfer_data: { destination: acct },
     application_fee_amount: feeCents,
     custom_fields: customFields,
@@ -343,6 +349,7 @@ export async function POST(request: Request) {
       brandPostalCode: profile?.postalCode ?? null,
       brandCountry: profile?.country ?? null,
       brandFooter,
+      clientTerms: profile?.clientTerms ?? null,
       dueDate: sent.due_date ? new Date(sent.due_date * 1000) : null,
       lineItems: {
         create: resolvedItems.map((item, index) => ({

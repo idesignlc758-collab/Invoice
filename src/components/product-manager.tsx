@@ -60,6 +60,15 @@ export function ProductManager({ products }: { products: Product[] }) {
     router.refresh();
   }
 
+  async function setProductTaxable(id: string, taxable: boolean) {
+    await fetch(`/api/products/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taxable }),
+    });
+    router.refresh();
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
       <form onSubmit={createProduct} className="rounded-3xl border border-line bg-card p-5 md:p-6">
@@ -116,8 +125,13 @@ export function ProductManager({ products }: { products: Product[] }) {
               </select>
             </label>
           </div>
-          <label className="flex items-center justify-between rounded-2xl bg-background px-4 py-3 text-sm">
-            <span>Taxable by default</span>
+          <label className="flex items-center justify-between gap-4 rounded-2xl bg-background px-4 py-3 text-sm">
+            <span>
+              <span className="block font-medium">Apply tax by default</span>
+              <span className="mt-0.5 block text-xs text-muted">
+                New invoices will tax this product when a tax rate is entered.
+              </span>
+            </span>
             <input
               type="checkbox"
               checked={taxable}
@@ -153,7 +167,7 @@ export function ProductManager({ products }: { products: Product[] }) {
                 <div className="min-w-0">
                   <p className="truncate font-medium">{product.name}</p>
                   <p className="mt-1 text-sm text-muted">
-                    {product.type} - {product.taxable ? "taxable" : "non-taxable"} - used{" "}
+                    {product.type} - {product.taxable ? "tax applies" : "no tax"} - used{" "}
                     {product.timesUsed}x
                   </p>
                   {product.description && (
@@ -164,6 +178,15 @@ export function ProductManager({ products }: { products: Product[] }) {
                   <p className="font-display text-lg font-bold tabular-nums">
                     {formatCents(product.unitAmount, product.currency)}
                   </p>
+                  <label className="mt-2 flex items-center justify-end gap-2 text-xs font-medium text-muted">
+                    <span>Apply tax</span>
+                    <input
+                      type="checkbox"
+                      checked={product.taxable}
+                      onChange={(e) => setProductTaxable(product.id, e.target.checked)}
+                      className="h-4 w-4 accent-[var(--accent)]"
+                    />
+                  </label>
                   <button
                     type="button"
                     onClick={() => setActive(product.id, false)}
