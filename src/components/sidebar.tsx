@@ -58,12 +58,6 @@ const mobileItems = [
   { href: "/payments", label: "Payments", icon: CreditCard },
 ];
 
-const quickLinks = [
-  { href: "/branding", label: "Brand ready", color: "bg-[#9ee6d5]" },
-  { href: "/products", label: "Products", color: "bg-[#b9c7ff]" },
-  { href: "/payments", label: "Payments", color: "bg-[#d7aff7]" },
-];
-
 function isActive(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -156,7 +150,7 @@ export function Sidebar() {
           <Link
             href="/invoices/new"
             title="New invoice"
-            className={`mt-4 flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-foreground text-sm font-bold text-background transition hover:opacity-90 ${
+            className={`mt-4 flex min-h-10 items-center justify-center gap-2 rounded-2xl bg-foreground text-sm font-bold text-background transition hover:opacity-90 ${
               collapsed ? "px-0" : "px-4"
             }`}
           >
@@ -165,7 +159,7 @@ export function Sidebar() {
           </Link>
 
           {!collapsed && (
-            <label className="mt-4 flex min-h-11 items-center gap-2 rounded-2xl border border-line bg-card px-3 text-sm text-muted focus-within:ring-2 focus-within:ring-accent">
+            <label className="mt-4 flex min-h-10 items-center gap-2 rounded-2xl border border-line bg-card px-3 text-sm text-muted focus-within:ring-2 focus-within:ring-accent">
               <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span className="sr-only">Search navigation</span>
               <input
@@ -178,7 +172,7 @@ export function Sidebar() {
             </label>
           )}
 
-          <nav className="mt-5 flex flex-col gap-5 text-sm">
+          <nav className="mt-4 flex flex-col gap-3 text-sm">
             {filteredGroups.map((group) => (
               <div key={group.label}>
                 {!collapsed && (
@@ -193,7 +187,7 @@ export function Sidebar() {
                         key={item.href}
                         href={item.href}
                         title={item.label}
-                        className={`group relative flex min-h-11 items-center gap-3 rounded-2xl font-medium transition ${
+                        className={`group relative flex min-h-10 items-center gap-3 rounded-2xl font-medium transition ${
                           active
                             ? "bg-card text-foreground shadow-[inset_0_0_0_1px_var(--line)]"
                             : "text-muted hover:bg-card hover:text-foreground"
@@ -218,7 +212,7 @@ export function Sidebar() {
               target="_blank"
               rel="noopener noreferrer"
               title="Stripe Dashboard"
-              className={`group relative flex min-h-11 items-center gap-3 rounded-2xl font-medium text-muted transition hover:bg-card hover:text-foreground ${
+              className={`group relative flex min-h-10 items-center gap-3 rounded-2xl font-medium text-muted transition hover:bg-card hover:text-foreground ${
                 collapsed ? "justify-center px-0" : "px-3"
               }`}
             >
@@ -231,42 +225,6 @@ export function Sidebar() {
               )}
             </a>
           </nav>
-
-          {!collapsed && (
-            <div className="mt-6 border-t border-line pt-5">
-              <div className="mb-2 flex items-center justify-between px-3">
-                <p className="text-[11px] font-semibold text-muted">Workspace</p>
-                <Link href="/branding" title="Edit branding" className="text-muted hover:text-foreground">
-                  <Plus className="h-4 w-4" aria-hidden="true" />
-                </Link>
-              </div>
-              <div className="space-y-1">
-                {quickLinks.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="flex min-h-9 items-center gap-3 rounded-2xl px-3 text-sm text-muted transition hover:bg-card hover:text-foreground"
-                  >
-                    <span className={`h-3.5 w-3.5 rounded-md ${item.color}`} />
-                    <span>{item.label}</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {collapsed && (
-            <div className="mt-6 flex flex-col items-center gap-3 border-t border-line pt-5">
-              {quickLinks.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={item.label}
-                  className={`h-4 w-4 rounded-md ${item.color}`}
-                />
-              ))}
-            </div>
-          )}
 
           <div className="flex-1" />
 

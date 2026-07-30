@@ -267,6 +267,15 @@ export function NewInvoiceFlow({
   );
 
   const dueLabel = DUE_PRESETS.find((preset) => preset.days === dueInDays)?.label ?? "Pay now";
+  const invoiceRows = [
+    { id: "primary", description, quantity: 1, amount: cents },
+    ...extraItems.map((item) => ({
+      id: item.id,
+      description: item.description,
+      quantity: item.quantity,
+      amount: item.quantity * item.unitCents,
+    })),
+  ].filter((item) => item.description.trim().length > 0 || item.amount > 0);
 
   const stepIndex = { amount: 0, details: 1, review: 2, sent: 3 }[step];
   const stepProgress = (
@@ -445,6 +454,150 @@ export function NewInvoiceFlow({
         className="min-h-11 px-1 text-sm font-medium text-accent"
       >
         + Add item
+      </button>
+    </div>
+  );
+
+  const desktopItems = (
+    <div>
+      <div className="overflow-hidden rounded-2xl border border-line bg-background">
+        <div className="grid grid-cols-[minmax(0,1fr)_5rem_8rem_2.75rem] gap-3 border-b border-line bg-card px-4 py-3 text-xs font-medium text-muted">
+          <span>Item</span>
+          <span className="text-center">Qty</span>
+          <span className="text-right">Amount</span>
+          <span />
+        </div>
+
+        <div className="grid grid-cols-[minmax(0,1fr)_5rem_8rem_2.75rem] gap-3 border-b border-line px-4 py-4">
+          <div className="min-w-0">
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setPrimaryProductId(null);
+              }}
+              placeholder="What are you billing for?"
+              className="w-full rounded-xl border border-line bg-card px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            {!primaryProductId && description.trim().length > 0 && cents > 0 && (
+              <label className="mt-2 flex items-center gap-2 text-sm text-muted">
+                <input
+                  type="checkbox"
+                  checked={savePrimaryProduct}
+                  onChange={(e) => setSavePrimaryProduct(e.target.checked)}
+                  className="h-4 w-4 accent-[var(--accent)]"
+                />
+                Save as product
+              </label>
+            )}
+          </div>
+          <div className="flex h-11 items-center justify-center rounded-xl border border-line bg-card text-base tabular-nums text-muted">
+            1
+          </div>
+          <div className="flex h-11 items-center rounded-xl border border-line bg-card px-3 focus-within:ring-2 focus-within:ring-accent">
+            <span className="mr-1 text-base text-muted">$</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={cents === 0 ? "" : (cents / 100).toString()}
+              onChange={(e) => setCents(Math.max(0, Math.round(Number(e.target.value || 0) * 100)))}
+              className="min-w-0 flex-1 bg-transparent text-right text-base tabular-nums focus:outline-none"
+            />
+          </div>
+          <span />
+        </div>
+
+        {extraItems.map((item) => (
+          <div
+            key={item.id}
+            className="grid grid-cols-[minmax(0,1fr)_5rem_8rem_2.75rem] gap-3 border-b border-line px-4 py-4 last:border-b-0"
+          >
+            <div className="min-w-0">
+              {products.length > 0 && (
+                <select
+                  value={item.productId ?? ""}
+                  onChange={(e) => pickExtraProduct(item.id, e.target.value)}
+                  className="mb-2 w-full rounded-xl border border-line bg-card px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent"
+                >
+                  <option value="">Custom item</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name} - {formatCents(product.unitAmount, product.currency)}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <input
+                type="text"
+                value={item.description}
+                onChange={(e) =>
+                  updateExtraItem(item.id, { description: e.target.value, productId: null })
+                }
+                placeholder="Description"
+                className="w-full rounded-xl border border-line bg-card px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              {!item.productId && item.description.trim().length > 0 && item.unitCents > 0 && (
+                <label className="mt-2 flex items-center gap-2 text-sm text-muted">
+                  <input
+                    type="checkbox"
+                    checked={item.saveProduct}
+                    onChange={(e) => updateExtraItem(item.id, { saveProduct: e.target.checked })}
+                    className="h-4 w-4 accent-[var(--accent)]"
+                  />
+                  Save as product
+                </label>
+              )}
+            </div>
+            <input
+              type="number"
+              inputMode="numeric"
+              min="1"
+              value={item.quantity}
+              onChange={(e) =>
+                updateExtraItem(item.id, {
+                  quantity: Math.max(1, Math.round(Number(e.target.value) || 1)),
+                })
+              }
+              className="h-11 rounded-xl border border-line bg-card px-3 text-center text-base tabular-nums focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            <div className="flex h-11 items-center rounded-xl border border-line bg-card px-3 focus-within:ring-2 focus-within:ring-accent">
+              <span className="mr-1 text-base text-muted">$</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={item.unitCents === 0 ? "" : (item.unitCents / 100).toString()}
+                onChange={(e) =>
+                  updateExtraItem(item.id, {
+                    unitCents: Math.max(0, Math.round(Number(e.target.value || 0) * 100)),
+                  })
+                }
+                className="min-w-0 flex-1 bg-transparent text-right text-base tabular-nums focus:outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => removeExtraItem(item.id)}
+              aria-label={`Remove ${item.description || "item"}`}
+              className="flex h-11 w-11 items-center justify-center rounded-xl text-muted hover:bg-card hover:text-danger"
+            >
+              x
+            </button>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={addExtraItem}
+        className="mt-3 min-h-10 rounded-xl px-1 text-sm font-bold text-accent"
+      >
+        + Add line item
       </button>
     </div>
   );
@@ -796,8 +949,151 @@ export function NewInvoiceFlow({
         {step === "sent" && <div className="flex-1 flex flex-col justify-center">{sentView}</div>}
       </main>
 
+      {/* ---------- Desktop: full invoice workspace ---------- */}
+      <div className="hidden flex-1 px-8 py-8 md:block">
+        <div className="mx-auto w-full max-w-7xl">
+          {step !== "sent" ? (
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_27rem]">
+              <section className="rounded-2xl border border-line bg-card p-6 shadow-sm">
+                <div className="mb-6 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted">Invoices</p>
+                    <h1 className="font-display text-3xl font-extrabold tracking-tight">
+                      New invoice
+                    </h1>
+                  </div>
+                  <Link href="/dashboard" className="text-sm font-medium text-muted hover:text-foreground">
+                    Close x
+                  </Link>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <label className="flex flex-col gap-1.5 text-sm">
+                    Client email
+                    <input
+                      type="email"
+                      required
+                      value={clientEmail}
+                      onChange={(e) => setClientEmail(e.target.value)}
+                      placeholder="client@example.com"
+                      className="rounded-xl border border-line bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent"
+                    />
+                  </label>
+                  <div className="flex flex-col">{renderDetails("bg-background")}</div>
+                </div>
+
+                <div className="mt-6 grid gap-4 xl:grid-cols-2">
+                  {recentClientChips && <div className="min-w-0">{recentClientChips}</div>}
+                  {productChips && <div className="min-w-0">{productChips}</div>}
+                </div>
+
+                <div className="mt-6">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <h2 className="font-display text-xl font-bold">Line items</h2>
+                      <p className="text-sm text-muted">
+                        Add the products or services being billed.
+                      </p>
+                    </div>
+                    <div className="hidden shrink-0 sm:block">{jobChips}</div>
+                  </div>
+                  <div className="sm:hidden">{jobChips}</div>
+                  {desktopItems}
+                </div>
+
+                <div className="mt-6 grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+                  <div>
+                    <h2 className="mb-3 font-display text-xl font-bold">Payment terms</h2>
+                    {dueChips}
+                  </div>
+                  <div>
+                    <h2 className="mb-3 font-display text-xl font-bold">Tax</h2>
+                    {renderTaxRow("bg-background")}
+                  </div>
+                </div>
+              </section>
+
+              <aside className="lg:sticky lg:top-8 lg:self-start">
+                <div className="rounded-2xl border border-line bg-card p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted">Invoice preview</p>
+                      <h2 className="font-display text-2xl font-extrabold tabular-nums">
+                        {formatCents(totalCents)}
+                      </h2>
+                    </div>
+                    <span className="rounded-full bg-line px-3 py-1 text-xs font-medium text-muted">
+                      {dueLabel}
+                    </span>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-line bg-background p-5">
+                    <div className="flex items-start justify-between gap-4 border-b border-line pb-4">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-muted">Bill to</p>
+                        <p className="mt-1 font-display text-lg font-bold">
+                          {clientName || clientEmail || "Client"}
+                        </p>
+                        <p className="text-sm text-muted">
+                          {clientEmail || "client@example.com"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      {invoiceRows.length > 0 ? (
+                        invoiceRows.map((item) => (
+                          <div key={item.id} className="flex items-start justify-between gap-4 text-sm">
+                            <div className="min-w-0">
+                              <p className="truncate font-medium">
+                                {item.description || "Untitled item"}
+                              </p>
+                              <p className="text-xs text-muted">Qty {item.quantity}</p>
+                            </div>
+                            <p className="shrink-0 tabular-nums">{formatCents(item.amount)}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted">Line items will appear here.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-2xl border border-line bg-background p-5">
+                    {totalsRows}
+                  </div>
+
+                  {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+
+                  <button
+                    type="button"
+                    disabled={!canSend || loading}
+                    onClick={send}
+                    className="mt-5 w-full rounded-full bg-accent px-5 py-4 font-display font-bold text-accent-contrast disabled:opacity-40"
+                  >
+                    {loading
+                      ? "Sending..."
+                      : cents > 0
+                        ? `Send invoice for ${formatCents(totalCents)}`
+                        : "Send invoice"}
+                  </button>
+
+                  <p className="mt-3 text-center text-xs leading-relaxed text-muted">
+                    Secure payment processed by iDesignLC Agency in partnership with Stripe.
+                  </p>
+                </div>
+              </aside>
+            </div>
+          ) : (
+            <div className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col justify-center rounded-2xl border border-line bg-card p-8">
+              {sentView}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* ---------- Desktop: single-view card ---------- */}
-      <div className="hidden md:flex flex-1 items-start justify-center py-14 px-6">
+      <div className="hidden">
         <div className="w-full max-w-md rounded-3xl border border-line bg-card p-8">
           {step !== "sent" ? (
             <>
