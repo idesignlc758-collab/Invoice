@@ -61,6 +61,29 @@ function formatAddress(profile: {
     .join(" - ");
 }
 
+function parseEmailCopies(value: unknown, label: string) {
+  const rawValues = Array.isArray(value)
+    ? value.map((entry) => String(entry))
+    : String(value ?? "")
+        .split(/[\s,;]+/)
+        .filter(Boolean);
+  const uniqueEmails = Array.from(
+    new Set(rawValues.map((entry) => entry.trim().toLowerCase()).filter(Boolean))
+  );
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (uniqueEmails.length > 20) {
+    return { emails: [], error: `${label} can include up to 20 recipients.` };
+  }
+
+  const invalid = uniqueEmails.find((email) => !emailPattern.test(email));
+  if (invalid) {
+    return { emails: [], error: `Enter a valid ${label} email address: ${invalid}` };
+  }
+
+  return { emails: uniqueEmails, error: null };
+}
+
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (user.onboardingStatus !== "ready" || !user.stripeAccountId) {
@@ -77,6 +100,8 @@ export async function POST(request: Request) {
   const clientNote = String(body.clientNote ?? "").trim().slice(0, 1000) || null;
   const privateMemo = String(body.privateMemo ?? "").trim().slice(0, 1000) || null;
   const clientTerms = String(body.clientTerms ?? "").trim().slice(0, 4000) || null;
+  const parsedCcEmails = parseEmailCopies(body.ccEmails, "CC");
+  const parsedBccEmails = parseEmailCopies(body.bccEmails, "BCC");
   const items = parseLineItems(body.items);
   const deliveryMode = body.deliveryMode === "stripe_email" ? "stripe_email" : "branded_email";
   const estimateId = body.estimateId ? String(body.estimateId) : null;
@@ -94,6 +119,12 @@ export async function POST(request: Request) {
   if (!clientEmail || items.length === 0) {
     return NextResponse.json(
       { error: "Enter a client email and at least one line item with an amount." },
+      { status: 400 }
+    );
+  }
+  if (parsedCcEmails.error || parsedBccEmails.error) {
+    return NextResponse.json(
+      { error: parsedCcEmails.error ?? parsedBccEmails.error },
       { status: 400 }
     );
   }
@@ -322,6 +353,8 @@ export async function POST(request: Request) {
       stripeNumber: sent.number ?? null,
       clientEmail,
       clientName,
+      ccEmails: parsedCcEmails.emails.join(",") || null,
+      bccEmails: parsedBccEmails.emails.join(",") || null,
       description: summary,
       subtotal: sent.subtotal ?? subtotalCents,
       taxPercent,
@@ -390,12 +423,22 @@ export async function POST(request: Request) {
   if (deliveryMode === "branded_email") {
     brandedEmailSent = await sendBrandedInvoiceEmail({
       to: clientEmail,
+      cc: parsedCcEmails.emails,
+      bcc: parsedBccEmails.emails,
       clientName,
       businessName: brandBusinessName,
       invoiceDescription: summary,
       totalCents: sent.total ?? subtotalCents + taxAmountCents,
       currency,
       publicInvoiceUrl,
+      lineItems: resolvedItems.map((item) => ({
+        description: item.description,
+        quantity: item.quantity,
+        amountCents: item.quantity * item.unitAmountCents,
+      })),
+      dueDate: sent.due_date ? new Date(sent.due_date * 1000) : null,
+      brandColor: profile?.brandColor ?? "#c81010",
+      logoUrl: profile?.logoUrl ?? null,
       senderName: profile?.emailSenderName ?? brandBusinessName,
       supportEmail: profile?.supportEmail ?? user.email,
       replyToEmail: profile?.replyToEmail ?? profile?.supportEmail ?? user.email,

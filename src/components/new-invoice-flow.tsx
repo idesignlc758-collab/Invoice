@@ -94,6 +94,8 @@ export function NewInvoiceFlow({
   const [clientName, setClientName] = useState(
     initialEstimate?.clientName ?? prefillClient?.clientName ?? ""
   );
+  const [ccEmails, setCcEmails] = useState("");
+  const [bccEmails, setBccEmails] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>(initialEstimate?.items ?? []);
   const [taxPercent, setTaxPercent] = useState(initialEstimate?.taxPercent ?? 0);
   const [dueInDays, setDueInDays] = useState(initialEstimate?.dueInDays ?? defaultTermsDays);
@@ -200,6 +202,8 @@ export function NewInvoiceFlow({
     setMobileAmountCents(0);
     setClientEmail("");
     setClientName("");
+    setCcEmails("");
+    setBccEmails("");
     setItems([]);
     setTaxPercent(0);
     setDueInDays(defaultTermsDays);
@@ -222,6 +226,8 @@ export function NewInvoiceFlow({
       body: JSON.stringify({
         clientEmail,
         clientName,
+        ccEmails,
+        bccEmails,
         dueInDays,
         taxPercent,
         clientNote,
@@ -413,6 +419,36 @@ export function NewInvoiceFlow({
           </button>
         ))}
       </div>
+    </div>
+  );
+
+  const emailCopyFields = (
+    <div className="grid gap-3 md:grid-cols-2">
+      <label className="flex flex-col gap-1.5 text-sm">
+        CC <span className="text-muted">(optional)</span>
+        <input
+          type="text"
+          inputMode="email"
+          value={ccEmails}
+          onChange={(e) => setCcEmails(e.target.value)}
+          placeholder="accounting@example.com, manager@example.com"
+          className="rounded-xl border border-line bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent"
+        />
+      </label>
+      <label className="flex flex-col gap-1.5 text-sm">
+        BCC <span className="text-muted">(optional)</span>
+        <input
+          type="text"
+          inputMode="email"
+          value={bccEmails}
+          onChange={(e) => setBccEmails(e.target.value)}
+          placeholder="records@example.com"
+          className="rounded-xl border border-line bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent"
+        />
+      </label>
+      <p className="text-xs text-muted md:col-span-2">
+        Separate multiple emails with commas. CC is visible to recipients; BCC stays private.
+      </p>
     </div>
   );
 
@@ -900,8 +936,25 @@ export function NewInvoiceFlow({
                 <span className="text-muted">Due</span>
                 <span>{dueLabel}</span>
               </div>
+              {(ccEmails.trim() || bccEmails.trim()) && (
+                <div className="border-t border-line py-2 text-sm">
+                  {ccEmails.trim() && (
+                    <div className="flex justify-between gap-3">
+                      <span className="text-muted">CC</span>
+                      <span className="truncate text-right">{ccEmails}</span>
+                    </div>
+                  )}
+                  {bccEmails.trim() && (
+                    <div className="mt-1 flex justify-between gap-3">
+                      <span className="text-muted">BCC</span>
+                      <span className="truncate text-right">{bccEmails}</span>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="border-t border-line pt-1">{totalsRows}</div>
             </div>
+            <div className="mb-6 rounded-2xl border border-line bg-card p-4">{emailCopyFields}</div>
             {error && <p className="mb-4 text-sm text-danger">{error}</p>}
             <div className="flex-1" />
             <button
@@ -956,6 +1009,16 @@ export function NewInvoiceFlow({
                     <p className="mt-2 font-display text-xl font-bold">{dueLabel}</p>
                     <p className="text-sm text-muted">Secure checkout powered by Stripe</p>
                   </div>
+                </div>
+
+                <div className="mt-5 rounded-2xl border border-line bg-background p-5">
+                  <div className="mb-3">
+                    <p className="text-xs uppercase tracking-wide text-muted">Email copies</p>
+                    <p className="mt-1 text-sm text-muted">
+                      Add optional CC or BCC recipients before this branded invoice email is sent.
+                    </p>
+                  </div>
+                  {emailCopyFields}
                 </div>
 
                 <div className="mt-5 rounded-2xl border border-line bg-background p-5">

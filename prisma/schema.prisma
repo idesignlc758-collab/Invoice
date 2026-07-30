@@ -103,6 +103,8 @@ model Invoice {
   stripeNumber           String?
   clientEmail            String
   clientName             String?
+  ccEmails               String?
+  bccEmails              String?
   description            String // summary line for list views; full detail lives in lineItems
   subtotal               Int       @default(0) // pre-tax, in cents
   taxPercent             Float     @default(0)
