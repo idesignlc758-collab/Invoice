@@ -11,7 +11,7 @@ import {
   Upload,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { formatCents } from "@/lib/format";
 
 type Profile = {
@@ -32,29 +32,128 @@ type Profile = {
   defaultTermsDays: number;
 } | null;
 
+type BrandingSection = "logo" | "identity" | "contact" | "defaults";
+
 const inputClass =
   "rounded-2xl border border-line bg-background px-4 py-3 text-base text-foreground outline-none transition placeholder:text-muted focus:ring-2 focus:ring-accent";
 const textareaClass =
   "resize-none rounded-2xl border border-line bg-background px-4 py-3 text-base text-foreground outline-none transition placeholder:text-muted focus:ring-2 focus:ring-accent";
 
-function SectionHeader({
+function paymentTermsLabel(days: string) {
+  if (days === "0") return "Due on receipt";
+  return `${days} days`;
+}
+
+function logoSummary(logoUrl: string) {
+  return logoUrl ? "Logo uploaded" : "Initial mark";
+}
+
+function identitySummary(name: string, website: string) {
+  if (name && website) return "Name and website";
+  if (name) return "Name set";
+  if (website) return "Website set";
+  return "Needs details";
+}
+
+function contactSummary(email: string, addressLines: string[]) {
+  if (email && addressLines.length > 0) return "Email and address";
+  if (email) return "Email set";
+  return "Needs contact";
+}
+
+function defaultsSummary(days: string, clientTerms: string) {
+  return clientTerms.trim().length > 0
+    ? `${paymentTermsLabel(days)} + terms`
+    : paymentTermsLabel(days);
+}
+
+function compactAddress(lines: string[]) {
+  if (lines.length === 0) return "";
+  return lines[0];
+}
+
+function AccordionSection({
+  id,
+  open,
+  onToggle,
   icon: Icon,
   title,
   description,
+  summary,
+  children,
 }: {
+  id: BrandingSection;
+  open: boolean;
+  onToggle: (id: BrandingSection) => void;
   icon: typeof Upload;
   title: string;
   description: string;
+  summary: string;
+  children: ReactNode;
 }) {
   return (
-    <div className="mb-5 flex items-start gap-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-background text-accent">
-        <Icon className="h-5 w-5" aria-hidden="true" />
-      </span>
-      <div>
-        <h2 className="font-display text-lg font-bold">{title}</h2>
-        <p className="mt-1 text-sm leading-relaxed text-muted">{description}</p>
+    <section className="overflow-hidden rounded-2xl border border-line bg-card">
+      <button
+        type="button"
+        onClick={() => onToggle(id)}
+        aria-expanded={open}
+        className="flex w-full items-start gap-4 p-5 text-left transition hover:bg-background/60 md:p-6"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-background text-accent">
+          <Icon className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span className="font-display text-lg font-bold">{title}</span>
+            <span className="max-w-full truncate rounded-full bg-background px-3 py-1 text-xs font-medium text-muted">
+              {summary}
+            </span>
+          </span>
+          <span className="mt-1 block text-sm leading-relaxed text-muted">{description}</span>
+        </span>
+        <ChevronDown
+          className={`mt-2 h-5 w-5 shrink-0 text-muted transition ${open ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
+      {open && <div className="border-t border-line px-5 py-5 md:px-6">{children}</div>}
+    </section>
+  );
+}
+
+function SavePanel({
+  loading,
+  saved,
+  error,
+}: {
+  loading: boolean;
+  saved: boolean;
+  error: string | null;
+}) {
+  return (
+    <div className="space-y-3">
+      {error && <p className="text-sm text-danger">{error}</p>}
+      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="font-medium">Ready to update your brand profile?</p>
+          <p className="mt-1 text-sm text-muted">
+            Changes apply to newly created invoices after saving.
+          </p>
+        </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="min-h-12 shrink-0 rounded-2xl bg-accent px-5 text-sm font-bold text-accent-contrast disabled:opacity-60"
+        >
+          {loading ? "Saving..." : "Save branding"}
+        </button>
       </div>
+      {saved && (
+        <p className="flex items-center gap-2 text-sm font-medium text-success">
+          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+          Brand profile saved.
+        </p>
+      )}
     </div>
   );
 }
@@ -91,6 +190,7 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [openSection, setOpenSection] = useState<BrandingSection | null>("logo");
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -155,19 +255,27 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
     }
   }
 
+  function toggleSection(section: BrandingSection) {
+    setOpenSection((current) => (current === section ? null : section));
+  }
+
   const displayName = businessName || "Your business";
   const cityLine = [city, state, postalCode].filter(Boolean).join(", ");
   const addressLines = [addressLine1, addressLine2, cityLine, country].filter(Boolean);
+  const previewAddress = compactAddress(addressLines);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_27rem]">
-      <form onSubmit={save} className="space-y-5">
-        <section className="rounded-2xl border border-line bg-card p-5 md:p-6">
-          <SectionHeader
-            icon={Upload}
-            title="Logo"
-            description="Upload the mark clients see on branded invoice pages and emails."
-          />
+      <form onSubmit={save} className="space-y-4">
+        <AccordionSection
+          id="logo"
+          open={openSection === "logo"}
+          onToggle={toggleSection}
+          icon={Upload}
+          title="Logo"
+          description="Upload the mark clients see on branded invoice pages and emails."
+          summary={logoSummary(logoUrl)}
+        >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -194,14 +302,17 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
               <p className="mt-2 text-sm text-muted">PNG, JPG, WebP, or GIF up to 20 MB.</p>
             </div>
           </div>
-        </section>
+        </AccordionSection>
 
-        <section className="rounded-2xl border border-line bg-card p-5 md:p-6">
-          <SectionHeader
-            icon={Palette}
-            title="Business identity"
-            description="Keep the sender name, color, and public website consistent."
-          />
+        <AccordionSection
+          id="identity"
+          open={openSection === "identity"}
+          onToggle={toggleSection}
+          icon={Palette}
+          title="Business identity"
+          description="Keep the sender name, color, and public website consistent."
+          summary={identitySummary(businessName, website)}
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1.5 text-sm sm:col-span-2">
               Business name
@@ -231,14 +342,17 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
               />
             </label>
           </div>
-        </section>
+        </AccordionSection>
 
-        <section className="rounded-2xl border border-line bg-card p-5 md:p-6">
-          <SectionHeader
-            icon={Mail}
-            title="Contact and billing address"
-            description="Show clients who provided the service and where billing questions go."
-          />
+        <AccordionSection
+          id="contact"
+          open={openSection === "contact"}
+          onToggle={toggleSection}
+          icon={Mail}
+          title="Contact and billing address"
+          description="Show clients who provided the service and where billing questions go."
+          summary={contactSummary(supportEmail, addressLines)}
+        >
           <div className="grid gap-4">
             <label className="flex flex-col gap-1.5 text-sm">
               Support email
@@ -288,14 +402,17 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
               className={inputClass}
             />
           </div>
-        </section>
+        </AccordionSection>
 
-        <section className="rounded-2xl border border-line bg-card p-5 md:p-6">
-          <SectionHeader
-            icon={FileText}
-            title="Invoice defaults"
-            description="Set payment timing, footer text, and client agreement language."
-          />
+        <AccordionSection
+          id="defaults"
+          open={openSection === "defaults"}
+          onToggle={toggleSection}
+          icon={FileText}
+          title="Invoice defaults"
+          description="Set payment timing, footer text, and client agreement language."
+          summary={defaultsSummary(defaultTermsDays, clientTerms)}
+        >
           <div className="grid gap-4">
             <label className="flex flex-col gap-1.5 text-sm">
               Default payment due
@@ -348,33 +465,12 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
               />
             </label>
           </div>
-        </section>
+        </AccordionSection>
 
-        {error && <p className="text-sm text-danger">{error}</p>}
-        <div className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="font-medium">Ready to update your brand profile?</p>
-            <p className="mt-1 text-sm text-muted">
-              Changes apply to newly created invoices after saving.
-            </p>
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="min-h-12 shrink-0 rounded-2xl bg-accent px-5 text-sm font-bold text-accent-contrast disabled:opacity-60"
-          >
-            {loading ? "Saving..." : "Save branding"}
-          </button>
-        </div>
-        {saved && (
-          <p className="flex items-center gap-2 text-sm font-medium text-success">
-            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-            Brand profile saved.
-          </p>
-        )}
+        <SavePanel loading={loading} saved={saved} error={error} />
       </form>
 
-      <aside className="lg:sticky lg:top-8 lg:self-start">
+      <aside className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
         <section className="rounded-2xl border border-line bg-card p-5 md:p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
@@ -403,9 +499,9 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
               </div>
             </div>
 
-            {addressLines.length > 0 && (
-              <div className="mt-4 rounded-xl bg-card p-3 text-xs leading-relaxed text-muted">
-                {addressLines.join(" - ")}
+            {previewAddress && (
+              <div className="mt-4 truncate rounded-xl bg-card p-3 text-xs text-muted">
+                {previewAddress}
               </div>
             )}
 
