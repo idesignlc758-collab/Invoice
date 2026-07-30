@@ -1,23 +1,70 @@
-import nodemailer from "nodemailer";
+const MAILTRAP_SEND_ENDPOINT =
+  process.env.MAILTRAP_SEND_ENDPOINT ?? "https://send.api.mailtrap.io/api/send";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.MAILTRAP_HOST,
-  port: Number(process.env.MAILTRAP_PORT ?? 587),
-  auth: {
-    user: process.env.MAILTRAP_USER,
-    pass: process.env.MAILTRAP_PASS,
-  },
-});
+const mailtrapToken = process.env.MAILTRAP_API_TOKEN ?? process.env.MAILTRAP_API_KEY;
+const fromAddress = process.env.MAIL_FROM ?? "";
+const fromName = process.env.MAIL_FROM_NAME ?? "Invoice by iDesignLC";
 
-const fromAddress = process.env.MAIL_FROM ?? "invoices@example.com";
+type MailtrapMessage = {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+  replyTo?: string | null;
+};
 
 function canSendMail() {
-  return Boolean(
-    process.env.MAILTRAP_HOST &&
-      process.env.MAILTRAP_USER &&
-      process.env.MAILTRAP_PASS &&
-      fromAddress
-  );
+  return Boolean(mailtrapToken && fromAddress);
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function paragraph(value: string) {
+  return `<p>${escapeHtml(value).replaceAll("\n", "<br/>")}</p>`;
+}
+
+async function sendMailtrapEmail(message: MailtrapMessage) {
+  if (!canSendMail()) return false;
+
+  try {
+    const response = await fetch(MAILTRAP_SEND_ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${mailtrapToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: { email: fromAddress, name: fromName },
+        to: [{ email: message.to }],
+        ...(message.replyTo ? { reply_to: { email: message.replyTo } } : {}),
+        subject: message.subject,
+        text: message.text,
+        html: message.html,
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      console.error("Mailtrap API send failed", {
+        status: response.status,
+        statusText: response.statusText,
+        body,
+      });
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Mailtrap API send failed", error);
+    return false;
+  }
 }
 
 function formatCents(cents: number, currency: string) {
@@ -38,31 +85,31 @@ export async function sendInvoicePaidEmail(params: {
   const { to, invoiceDescription, totalCents, feeCents, currency, clientName } = params;
   const netCents = totalCents - feeCents;
   const payer = clientName || "Your client";
+  const total = formatCents(totalCents, currency);
+  const fee = formatCents(feeCents, currency);
+  const net = formatCents(netCents, currency);
 
-  await transporter.sendMail({
-    from: fromAddress,
+  await sendMailtrapEmail({
     to,
-    subject: `You got paid — ${formatCents(totalCents, currency)}`,
+    subject: `You got paid - ${total}`,
     text:
-      `${payer} paid ${formatCents(totalCents, currency)} for "${invoiceDescription}".\n\n` +
-      `Platform fee: ${formatCents(feeCents, currency)}\n` +
-      `On its way to your bank: ${formatCents(netCents, currency)}\n\n` +
+      `${payer} paid ${total} for "${invoiceDescription}".\n\n` +
+      `Platform fee: ${fee}\n` +
+      `On its way to your bank: ${net}\n\n` +
       `View the payout in your Stripe dashboard.`,
     html:
-      `<p>${payer} paid <strong>${formatCents(totalCents, currency)}</strong> for "${invoiceDescription}".</p>` +
-      `<p>Platform fee: ${formatCents(feeCents, currency)}<br/>` +
-      `On its way to your bank: <strong>${formatCents(netCents, currency)}</strong></p>` +
-      `<p>View the payout in your Stripe dashboard.</p>`,
+      paragraph(`${payer} paid ${total} for "${invoiceDescription}".`) +
+      paragraph(`Platform fee: ${fee}\nOn its way to your bank: ${net}`) +
+      paragraph("View the payout in your Stripe dashboard."),
   });
 }
 
 export async function sendOnboardingReadyEmail(to: string) {
-  await transporter.sendMail({
-    from: fromAddress,
+  await sendMailtrapEmail({
     to,
     subject: "You're ready to send invoices",
     text: "Your Stripe account is verified. You can now create and send invoices.",
-    html: "<p>Your Stripe account is verified. You can now create and send invoices.</p>",
+    html: paragraph("Your Stripe account is verified. You can now create and send invoices."),
   });
 }
 
@@ -78,8 +125,6 @@ export async function sendBrandedInvoiceEmail(params: {
   footer?: string | null;
   clientNote?: string | null;
 }) {
-  if (!canSendMail()) return false;
-
   const {
     to,
     clientName,
@@ -95,10 +140,12 @@ export async function sendBrandedInvoiceEmail(params: {
   const greeting = clientName ? `Hi ${clientName},` : "Hi,";
   const amount = formatCents(totalCents, currency);
   const replyLine = supportEmail ? `Questions? Reply to ${supportEmail}.` : "";
+  const footerText =
+    footer ?? "Secure payment processed by iDesignLC Agency in partnership with Stripe.";
 
-  await transporter.sendMail({
-    from: fromAddress,
+  return sendMailtrapEmail({
     to,
+    replyTo: supportEmail,
     subject: `${businessName} sent you an invoice for ${amount}`,
     text:
       `${greeting}\n\n` +
@@ -106,17 +153,15 @@ export async function sendBrandedInvoiceEmail(params: {
       (clientNote ? `${clientNote}\n\n` : "") +
       `View and pay securely: ${publicInvoiceUrl}\n\n` +
       `${replyLine}\n` +
-      `${footer ?? "Secure payment processed by iDesignLC Agency in partnership with Stripe."}`,
+      footerText,
     html:
-      `<p>${greeting}</p>` +
-      `<p><strong>${businessName}</strong> sent you an invoice for <strong>${amount}</strong> for "${invoiceDescription}".</p>` +
-      (clientNote ? `<p>${clientNote}</p>` : "") +
-      `<p><a href="${publicInvoiceUrl}">View and pay securely</a></p>` +
-      (replyLine ? `<p>${replyLine}</p>` : "") +
-      `<p style="color:#666;font-size:12px">${footer ?? "Secure payment processed by iDesignLC Agency in partnership with Stripe."}</p>`,
+      paragraph(greeting) +
+      paragraph(`${businessName} sent you an invoice for ${amount} for "${invoiceDescription}".`) +
+      (clientNote ? paragraph(clientNote) : "") +
+      `<p><a href="${escapeHtml(publicInvoiceUrl)}">View and pay securely</a></p>` +
+      (replyLine ? paragraph(replyLine) : "") +
+      `<p style="color:#666;font-size:12px">${escapeHtml(footerText)}</p>`,
   });
-
-  return true;
 }
 
 export async function sendBrandedEstimateEmail(params: {
@@ -132,8 +177,6 @@ export async function sendBrandedEstimateEmail(params: {
   clientNote?: string | null;
   expiresAt?: Date | null;
 }) {
-  if (!canSendMail()) return false;
-
   const {
     to,
     clientName,
@@ -157,10 +200,13 @@ export async function sendBrandedEstimateEmail(params: {
         year: "numeric",
       }).format(expiresAt)}.`
     : "";
+  const footerText =
+    footer ??
+    "Estimate prepared by the service provider. Payment will be processed securely after invoice approval.";
 
-  await transporter.sendMail({
-    from: fromAddress,
+  return sendMailtrapEmail({
     to,
+    replyTo: supportEmail,
     subject: `${businessName} sent you an estimate for ${amount}`,
     text:
       `${greeting}\n\n` +
@@ -169,16 +215,14 @@ export async function sendBrandedEstimateEmail(params: {
       (expiryLine ? `${expiryLine}\n\n` : "") +
       `Review the estimate: ${publicEstimateUrl}\n\n` +
       `${replyLine}\n` +
-      `${footer ?? "Estimate prepared by the service provider. Payment will be processed securely after invoice approval."}`,
+      footerText,
     html:
-      `<p>${greeting}</p>` +
-      `<p><strong>${businessName}</strong> sent you an estimate for <strong>${amount}</strong> for "${estimateDescription}".</p>` +
-      (clientNote ? `<p>${clientNote}</p>` : "") +
-      (expiryLine ? `<p>${expiryLine}</p>` : "") +
-      `<p><a href="${publicEstimateUrl}">Review the estimate</a></p>` +
-      (replyLine ? `<p>${replyLine}</p>` : "") +
-      `<p style="color:#666;font-size:12px">${footer ?? "Estimate prepared by the service provider. Payment will be processed securely after invoice approval."}</p>`,
+      paragraph(greeting) +
+      paragraph(`${businessName} sent you an estimate for ${amount} for "${estimateDescription}".`) +
+      (clientNote ? paragraph(clientNote) : "") +
+      (expiryLine ? paragraph(expiryLine) : "") +
+      `<p><a href="${escapeHtml(publicEstimateUrl)}">Review the estimate</a></p>` +
+      (replyLine ? paragraph(replyLine) : "") +
+      `<p style="color:#666;font-size:12px">${escapeHtml(footerText)}</p>`,
   });
-
-  return true;
 }
