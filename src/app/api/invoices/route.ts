@@ -131,6 +131,20 @@ export async function POST(request: Request) {
   const taxAmountCents = Math.round(taxableSubtotalCents * (taxPercent / 100));
   const feeCents = calculateFeeAmount(subtotalCents);
   const acct = user.stripeAccountId;
+  const profile = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
+
+  if (
+    deliveryMode === "branded_email" &&
+    (!profile?.businessName || !profile.emailSenderName || !profile.replyToEmail)
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Complete Branding before sending branded invoices: business name, sender name, and reply-to email are required.",
+      },
+      { status: 409 }
+    );
+  }
 
   const savedProducts = await prisma.product.findMany({
     where: {
@@ -251,7 +265,6 @@ export async function POST(request: Request) {
     });
   }
 
-  const profile = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
   const brandBusinessName = profile?.businessName ?? businessName ?? user.email.split("@")[0];
   const providerAddress = profile ? formatAddress(profile) : "";
   const brandFooter =
@@ -383,7 +396,9 @@ export async function POST(request: Request) {
       totalCents: sent.total ?? subtotalCents + taxAmountCents,
       currency,
       publicInvoiceUrl,
+      senderName: profile?.emailSenderName ?? brandBusinessName,
       supportEmail: profile?.supportEmail ?? user.email,
+      replyToEmail: profile?.replyToEmail ?? profile?.supportEmail ?? user.email,
       footer: brandFooter,
       clientNote,
     });

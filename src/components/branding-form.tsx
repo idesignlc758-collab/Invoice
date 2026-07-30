@@ -18,6 +18,8 @@ type Profile = {
   businessName: string | null;
   logoUrl: string | null;
   brandColor: string;
+  emailSenderName: string | null;
+  replyToEmail: string | null;
   supportEmail: string | null;
   website: string | null;
   addressLine1: string | null;
@@ -32,7 +34,7 @@ type Profile = {
   defaultTermsDays: number;
 } | null;
 
-type BrandingSection = "logo" | "identity" | "contact" | "defaults";
+type BrandingSection = "logo" | "email" | "identity" | "contact" | "defaults";
 
 const inputClass =
   "rounded-2xl border border-line bg-background px-4 py-3 text-base text-foreground outline-none transition placeholder:text-muted focus:ring-2 focus:ring-accent";
@@ -46,6 +48,13 @@ function paymentTermsLabel(days: string) {
 
 function logoSummary(logoUrl: string) {
   return logoUrl ? "Logo uploaded" : "Initial mark";
+}
+
+function emailSummary(senderName: string, replyToEmail: string) {
+  if (senderName && replyToEmail) return "Ready to send";
+  if (senderName) return "Needs reply-to";
+  if (replyToEmail) return "Needs sender";
+  return "Required";
 }
 
 function identitySummary(name: string, website: string) {
@@ -158,11 +167,25 @@ function SavePanel({
   );
 }
 
-export function BrandingForm({ profile, email }: { profile: Profile; email: string }) {
+export function BrandingForm({
+  profile,
+  email,
+  fromAddress,
+}: {
+  profile: Profile;
+  email: string;
+  fromAddress: string;
+}) {
   const router = useRouter();
   const [businessName, setBusinessName] = useState(profile?.businessName ?? "");
   const [logoUrl, setLogoUrl] = useState(profile?.logoUrl ?? "");
   const [brandColor, setBrandColor] = useState(profile?.brandColor ?? "#c81010");
+  const [emailSenderName, setEmailSenderName] = useState(
+    profile?.emailSenderName ?? `${profile?.businessName ?? "Your business"} via iDesignLC`
+  );
+  const [replyToEmail, setReplyToEmail] = useState(
+    profile?.replyToEmail ?? profile?.supportEmail ?? email
+  );
   const [supportEmail, setSupportEmail] = useState(profile?.supportEmail ?? email);
   const [website, setWebsite] = useState(profile?.website ?? "");
   const [addressLine1, setAddressLine1] = useState(profile?.addressLine1 ?? "");
@@ -196,13 +219,16 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
     event.preventDefault();
     setLoading(true);
     setSaved(false);
-    await fetch("/api/branding", {
+    setError(null);
+    const response = await fetch("/api/branding", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         businessName,
         logoUrl,
         brandColor,
+        emailSenderName,
+        replyToEmail,
         supportEmail,
         website,
         addressLine1,
@@ -218,6 +244,11 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
       }),
     });
     setLoading(false);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      setError(data.error ?? "Could not save branding. Check the required email fields.");
+      return;
+    }
     setSaved(true);
     router.refresh();
   }
@@ -301,6 +332,57 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
               </label>
               <p className="mt-2 text-sm text-muted">PNG, JPG, WebP, or GIF up to 20 MB.</p>
             </div>
+          </div>
+        </AccordionSection>
+
+        <AccordionSection
+          id="email"
+          open={openSection === "email"}
+          onToggle={toggleSection}
+          icon={Mail}
+          title="Email identity"
+          description="Control the branded email clients see before they open the invoice."
+          summary={emailSummary(emailSenderName, replyToEmail)}
+        >
+          <div className="grid gap-4">
+            <label className="flex flex-col gap-1.5 text-sm">
+              Platform sending address
+              <input
+                value={fromAddress}
+                readOnly
+                className={`${inputClass} cursor-not-allowed text-muted`}
+              />
+              <span className="text-xs text-muted">
+                This stays on iDesignLC&apos;s verified domain for delivery and security.
+              </span>
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm">
+              Sender name
+              <input
+                value={emailSenderName}
+                onChange={(event) => setEmailSenderName(event.target.value)}
+                placeholder="Gens Gem via iDesignLC"
+                className={inputClass}
+                required
+              />
+              <span className="text-xs text-muted">
+                Appears in the client&apos;s inbox, for example: Gens Gem via iDesignLC.
+              </span>
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm">
+              Reply-to email
+              <input
+                type="email"
+                value={replyToEmail}
+                onChange={(event) => setReplyToEmail(event.target.value)}
+                placeholder="billing@example.com"
+                className={inputClass}
+                required
+              />
+              <span className="text-xs text-muted">
+                Client replies go here instead of the platform sending address.
+              </span>
+            </label>
           </div>
         </AccordionSection>
 
@@ -478,6 +560,30 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
               <h2 className="font-display text-xl font-bold">Client invoice</h2>
             </div>
             <span className="rounded-full bg-background px-3 py-1 text-xs font-medium">Open</span>
+          </div>
+
+          <div className="mb-4 rounded-2xl border border-line bg-background p-4">
+            <p className="text-xs font-semibold text-muted">Branded email header</p>
+            <div className="mt-3 grid gap-2 text-sm">
+              <div className="flex justify-between gap-4">
+                <span className="text-muted">From</span>
+                <span className="min-w-0 truncate font-medium">
+                  {emailSenderName || fromAddress}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted">Reply-to</span>
+                <span className="min-w-0 truncate font-medium">
+                  {replyToEmail || supportEmail}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted">Subject</span>
+                <span className="min-w-0 truncate font-medium">
+                  {displayName} sent you an invoice
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="rounded-2xl border border-line bg-background p-5">

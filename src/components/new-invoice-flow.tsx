@@ -228,7 +228,7 @@ export function NewInvoiceFlow({
         privateMemo,
         clientTerms: invoiceTerms,
         estimateId: initialEstimate?.id,
-        deliveryMode: "stripe_email",
+        deliveryMode: "branded_email",
         items: items.map((item) => ({
           description: item.description,
           quantity: item.quantity,

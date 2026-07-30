@@ -27,7 +27,7 @@ import {
 import { SignOutButton as ClerkSignOutButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const navGroups = [
   {
@@ -60,6 +60,19 @@ const mobileItems = [
   { href: "/payments", label: "Payments", icon: CreditCard },
 ];
 
+type SetupTask = {
+  id: string;
+  label: string;
+  href: string;
+  done: boolean;
+};
+
+type SetupStatus = {
+  complete: number;
+  total: number;
+  tasks: SetupTask[];
+};
+
 function isActive(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -81,6 +94,7 @@ export function Sidebar() {
   const initial = userInitial(email, user?.fullName);
   const [query, setQuery] = useState("");
   const [accountOpen, setAccountOpen] = useState(false);
+  const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
   const [collapsed, setCollapsed] = useState(
     () => typeof window !== "undefined" && localStorage.getItem("checkout-sidebar") === "collapsed"
   );
@@ -93,6 +107,22 @@ export function Sidebar() {
       return next;
     });
   }
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/setup-status")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (active) setSetupStatus(data);
+      })
+      .catch(() => {
+        if (active) setSetupStatus(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredGroups = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -229,6 +259,44 @@ export function Sidebar() {
           </nav>
 
           <div className="flex-1" />
+
+          {!collapsed && setupStatus && setupStatus.complete < setupStatus.total && (
+            <div className="mb-3 rounded-2xl border border-line bg-card p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold">Setup checklist</p>
+                  <p className="mt-1 text-xs text-muted">
+                    {setupStatus.complete} of {setupStatus.total} complete
+                  </p>
+                </div>
+                <span className="rounded-full bg-background px-2 py-1 text-[11px] font-semibold text-muted">
+                  {Math.round((setupStatus.complete / setupStatus.total) * 100)}%
+                </span>
+              </div>
+              <div className="mt-3 flex flex-col gap-1">
+                {setupStatus.tasks.slice(0, 5).map((task) => (
+                  <Link
+                    key={task.id}
+                    href={task.href}
+                    className="flex min-h-8 items-center gap-2 rounded-xl px-2 text-xs text-muted transition hover:bg-background hover:text-foreground"
+                  >
+                    <span
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                        task.done
+                          ? "border-success bg-success text-background"
+                          : "border-line bg-background"
+                      }`}
+                    >
+                      {task.done && <CheckCircle2 className="h-3 w-3" aria-hidden="true" />}
+                    </span>
+                    <span className={task.done ? "line-through opacity-70" : ""}>
+                      {task.label}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {!collapsed && (
             <div className="mb-3 rounded-2xl bg-success-soft p-3">

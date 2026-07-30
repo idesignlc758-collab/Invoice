@@ -5,6 +5,7 @@ import { BrandingForm } from "@/components/branding-form";
 export default async function BrandingPage() {
   const user = await getCurrentUser();
   const profile = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
+  const fromAddress = process.env.MAIL_FROM ?? "invoice@idesignlc.com";
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-5 py-6 md:px-8 md:py-8">
@@ -23,7 +24,7 @@ export default async function BrandingPage() {
           Applies to new invoices
         </div>
       </header>
-      <BrandingForm profile={profile} email={user.email} />
+      <BrandingForm profile={profile} email={user.email} fromAddress={fromAddress} />
     </main>
   );
 }

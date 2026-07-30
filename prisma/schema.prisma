@@ -72,6 +72,8 @@ model BusinessProfile {
   businessName      String?
   logoUrl           String?
   brandColor        String   @default("#c81010")
+  emailSenderName   String?
+  replyToEmail      String?
   supportEmail      String?
   website           String?
   addressLine1      String?

@@ -10,6 +10,7 @@ type MailtrapMessage = {
   subject: string;
   text: string;
   html: string;
+  fromName?: string | null;
   replyTo?: string | null;
 };
 
@@ -41,7 +42,7 @@ async function sendMailtrapEmail(message: MailtrapMessage) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: { email: fromAddress, name: fromName },
+        from: { email: fromAddress, name: message.fromName || fromName },
         to: [{ email: message.to }],
         ...(message.replyTo ? { reply_to: { email: message.replyTo } } : {}),
         subject: message.subject,
@@ -121,7 +122,9 @@ export async function sendBrandedInvoiceEmail(params: {
   totalCents: number;
   currency: string;
   publicInvoiceUrl: string;
+  senderName?: string | null;
   supportEmail?: string | null;
+  replyToEmail?: string | null;
   footer?: string | null;
   clientNote?: string | null;
 }) {
@@ -133,7 +136,9 @@ export async function sendBrandedInvoiceEmail(params: {
     totalCents,
     currency,
     publicInvoiceUrl,
+    senderName,
     supportEmail,
+    replyToEmail,
     footer,
     clientNote,
   } = params;
@@ -145,7 +150,8 @@ export async function sendBrandedInvoiceEmail(params: {
 
   return sendMailtrapEmail({
     to,
-    replyTo: supportEmail,
+    fromName: senderName,
+    replyTo: replyToEmail ?? supportEmail,
     subject: `${businessName} sent you an invoice for ${amount}`,
     text:
       `${greeting}\n\n` +
@@ -172,7 +178,9 @@ export async function sendBrandedEstimateEmail(params: {
   totalCents: number;
   currency: string;
   publicEstimateUrl: string;
+  senderName?: string | null;
   supportEmail?: string | null;
+  replyToEmail?: string | null;
   footer?: string | null;
   clientNote?: string | null;
   expiresAt?: Date | null;
@@ -185,7 +193,9 @@ export async function sendBrandedEstimateEmail(params: {
     totalCents,
     currency,
     publicEstimateUrl,
+    senderName,
     supportEmail,
+    replyToEmail,
     footer,
     clientNote,
     expiresAt,
@@ -206,7 +216,8 @@ export async function sendBrandedEstimateEmail(params: {
 
   return sendMailtrapEmail({
     to,
-    replyTo: supportEmail,
+    fromName: senderName,
+    replyTo: replyToEmail ?? supportEmail,
     subject: `${businessName} sent you an estimate for ${amount}`,
     text:
       `${greeting}\n\n` +

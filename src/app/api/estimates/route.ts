@@ -110,6 +110,15 @@ export async function POST(request: Request) {
   });
 
   const profile = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
+  if (!profile?.businessName || !profile.emailSenderName || !profile.replyToEmail) {
+    return NextResponse.json(
+      {
+        error:
+          "Complete Branding before sending branded estimates: business name, sender name, and reply-to email are required.",
+      },
+      { status: 409 }
+    );
+  }
   const brandBusinessName = profile?.businessName ?? user.email.split("@")[0];
   const providerAddress = profile ? formatAddress(profile) : "";
   const brandFooter =
@@ -183,7 +192,9 @@ export async function POST(request: Request) {
     totalCents,
     currency,
     publicEstimateUrl,
+    senderName: profile?.emailSenderName ?? brandBusinessName,
     supportEmail: profile?.supportEmail ?? user.email,
+    replyToEmail: profile?.replyToEmail ?? profile?.supportEmail ?? user.email,
     footer: providerAddress ? `${brandFooter}\n${providerAddress}` : brandFooter,
     clientNote,
     expiresAt,
