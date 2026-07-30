@@ -115,6 +115,9 @@ export async function POST(request: Request) {
   const clientEmail = String(body.clientEmail ?? "").trim();
   const normalizedClientEmail = clientEmail.toLowerCase();
   const clientName = body.clientName ? String(body.clientName).trim() : null;
+  const clientNote = String(body.clientNote ?? "").trim().slice(0, 1000) || null;
+  const privateMemo = String(body.privateMemo ?? "").trim().slice(0, 1000) || null;
+  const clientTerms = String(body.clientTerms ?? "").trim().slice(0, 4000) || null;
   const items = parseItems(body.items);
   const deliveryMode = body.deliveryMode === "stripe_email" ? "stripe_email" : "branded_email";
 
@@ -289,6 +292,7 @@ export async function POST(request: Request) {
     transfer_data: { destination: acct },
     application_fee_amount: feeCents,
     custom_fields: customFields,
+    description: clientNote ? clientNote.slice(0, 500) : undefined,
     footer: brandFooter.slice(0, 500),
   });
 
@@ -349,7 +353,9 @@ export async function POST(request: Request) {
       brandPostalCode: profile?.postalCode ?? null,
       brandCountry: profile?.country ?? null,
       brandFooter,
-      clientTerms: profile?.clientTerms ?? null,
+      clientTerms,
+      clientNote,
+      privateMemo,
       dueDate: sent.due_date ? new Date(sent.due_date * 1000) : null,
       lineItems: {
         create: resolvedItems.map((item, index) => ({
@@ -391,6 +397,7 @@ export async function POST(request: Request) {
       publicInvoiceUrl,
       supportEmail: profile?.supportEmail ?? user.email,
       footer: brandFooter,
+      clientNote,
     });
   }
 

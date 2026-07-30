@@ -76,6 +76,7 @@ export async function sendBrandedInvoiceEmail(params: {
   publicInvoiceUrl: string;
   supportEmail?: string | null;
   footer?: string | null;
+  clientNote?: string | null;
 }) {
   if (!canSendMail()) return false;
 
@@ -89,6 +90,7 @@ export async function sendBrandedInvoiceEmail(params: {
     publicInvoiceUrl,
     supportEmail,
     footer,
+    clientNote,
   } = params;
   const greeting = clientName ? `Hi ${clientName},` : "Hi,";
   const amount = formatCents(totalCents, currency);
@@ -101,12 +103,14 @@ export async function sendBrandedInvoiceEmail(params: {
     text:
       `${greeting}\n\n` +
       `${businessName} sent you an invoice for ${amount} for "${invoiceDescription}".\n\n` +
+      (clientNote ? `${clientNote}\n\n` : "") +
       `View and pay securely: ${publicInvoiceUrl}\n\n` +
       `${replyLine}\n` +
       `${footer ?? "Secure payment processed by iDesignLC Agency in partnership with Stripe."}`,
     html:
       `<p>${greeting}</p>` +
       `<p><strong>${businessName}</strong> sent you an invoice for <strong>${amount}</strong> for "${invoiceDescription}".</p>` +
+      (clientNote ? `<p>${clientNote}</p>` : "") +
       `<p><a href="${publicInvoiceUrl}">View and pay securely</a></p>` +
       (replyLine ? `<p>${replyLine}</p>` : "") +
       `<p style="color:#666;font-size:12px">${footer ?? "Secure payment processed by iDesignLC Agency in partnership with Stripe."}</p>`,

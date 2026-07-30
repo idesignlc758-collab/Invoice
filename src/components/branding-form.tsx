@@ -3,6 +3,7 @@
 import { upload } from "@vercel/blob/client";
 import {
   CheckCircle2,
+  ChevronDown,
   FileText,
   Mail,
   Palette,
@@ -27,6 +28,7 @@ type Profile = {
   country: string | null;
   invoiceFooter: string | null;
   clientTerms: string | null;
+  defaultClientNote: string | null;
   defaultTermsDays: number;
 } | null;
 
@@ -78,6 +80,9 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
     profile?.clientTerms ??
       "By paying this invoice, you confirm that the services, pricing, and payment terms have been reviewed and accepted."
   );
+  const [defaultClientNote, setDefaultClientNote] = useState(
+    profile?.defaultClientNote ?? "Thank you for your business."
+  );
   const [defaultTermsDays, setDefaultTermsDays] = useState(
     String(profile?.defaultTermsDays ?? 0)
   );
@@ -108,6 +113,7 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
         country,
         invoiceFooter,
         clientTerms,
+        defaultClientNote,
         defaultTermsDays,
       }),
     });
@@ -305,6 +311,20 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
               </select>
             </label>
             <label className="flex flex-col gap-1.5 text-sm">
+              Default client note
+              <textarea
+                value={defaultClientNote}
+                onChange={(event) => setDefaultClientNote(event.target.value)}
+                rows={3}
+                maxLength={1000}
+                placeholder="Thank your client or add payment instructions."
+                className={textareaClass}
+              />
+              <span className="text-xs text-muted">
+                Shown on branded invoice pages and app-sent invoice emails.
+              </span>
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm">
               Client Terms & Conditions
               <textarea
                 value={clientTerms}
@@ -408,17 +428,29 @@ export function BrandingForm({ profile, email }: { profile: Profile; email: stri
               ))}
             </div>
 
+            {defaultClientNote.trim().length > 0 && (
+              <div className="mt-5 rounded-xl bg-card p-3 text-sm leading-relaxed text-muted">
+                {defaultClientNote}
+              </div>
+            )}
+
             {clientTerms.trim().length > 0 && (
-              <div className="mt-5 rounded-xl border border-line bg-card p-3">
-                <p className="text-xs font-semibold text-foreground">Terms and conditions</p>
-                <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-xs leading-relaxed text-muted">
+              <details className="group mt-5 rounded-xl border border-line bg-card p-3">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-semibold text-foreground">
+                  <span>Terms and conditions</span>
+                  <ChevronDown
+                    className="h-4 w-4 shrink-0 text-muted transition group-open:rotate-180"
+                    aria-hidden="true"
+                  />
+                </summary>
+                <div className="mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-xl bg-background p-3 text-xs leading-relaxed text-muted">
                   {clientTerms}
-                </p>
+                </div>
                 <div className="mt-3 flex items-start gap-2 text-xs">
                   <span className="mt-0.5 h-3.5 w-3.5 rounded border border-line bg-background" />
                   <span>I agree to the terms and conditions for this invoice.</span>
                 </div>
-              </div>
+              </details>
             )}
 
             <button

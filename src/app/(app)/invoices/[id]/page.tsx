@@ -119,6 +119,30 @@ export default async function InvoiceDetailPage({
         </div>
       </section>
 
+      {(invoice.clientNote || invoice.privateMemo) && (
+        <section className="mt-4 rounded-2xl border border-line bg-card p-5">
+          <p className="mb-3 text-xs uppercase tracking-wide text-muted">Notes</p>
+          <div className="flex flex-col gap-4 text-sm">
+            {invoice.clientNote && (
+              <div>
+                <p className="font-medium">Client note</p>
+                <p className="mt-1 whitespace-pre-wrap leading-relaxed text-muted">
+                  {invoice.clientNote}
+                </p>
+              </div>
+            )}
+            {invoice.privateMemo && (
+              <div>
+                <p className="font-medium">Private memo</p>
+                <p className="mt-1 whitespace-pre-wrap leading-relaxed text-muted">
+                  {invoice.privateMemo}
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       <dl className="mt-6 flex flex-col gap-2 text-sm">
         {invoice.dueDate && (
           <div className="flex justify-between">

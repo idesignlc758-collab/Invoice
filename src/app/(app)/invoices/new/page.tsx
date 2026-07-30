@@ -29,11 +29,24 @@ export default async function NewInvoicePage({
       taxable: true,
     },
   });
+  const profile = await prisma.businessProfile.findUnique({
+    where: { userId: user.id },
+    select: { defaultTermsDays: true, clientTerms: true, defaultClientNote: true },
+  });
 
   const recentClients = getRecentClients(invoices, 5);
 
   const { client } = await searchParams;
   const prefill = client ? recentClients.find((c) => c.clientEmail === client) ?? null : null;
 
-  return <NewInvoiceFlow recentClients={recentClients} products={products} prefillClient={prefill} />;
+  return (
+    <NewInvoiceFlow
+      recentClients={recentClients}
+      products={products}
+      prefillClient={prefill}
+      defaultTermsDays={profile?.defaultTermsDays ?? 0}
+      defaultClientTerms={profile?.clientTerms ?? ""}
+      defaultClientNote={profile?.defaultClientNote ?? ""}
+    />
+  );
 }

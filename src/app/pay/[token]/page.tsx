@@ -153,6 +153,15 @@ export default async function PublicInvoicePage({
             </div>
           </div>
 
+          {invoice.clientNote && (
+            <div className="mt-4 rounded-2xl border border-line bg-background p-4">
+              <p className="text-xs uppercase tracking-wide text-muted">Note</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                {invoice.clientNote}
+              </p>
+            </div>
+          )}
+
           {canPay ? (
             <InvoicePaymentGate
               hostedInvoiceUrl={invoice.hostedInvoiceUrl!}

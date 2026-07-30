@@ -51,10 +51,16 @@ export function NewInvoiceFlow({
   recentClients,
   products,
   prefillClient,
+  defaultTermsDays,
+  defaultClientTerms,
+  defaultClientNote,
 }: {
   recentClients: RecentClient[];
   products: SavedProduct[];
   prefillClient?: RecentClient | null;
+  defaultTermsDays: number;
+  defaultClientTerms: string;
+  defaultClientNote: string;
 }) {
   const [step, setStep] = useState<Step>("amount");
   const [cents, setCents] = useState(0);
@@ -68,7 +74,10 @@ export function NewInvoiceFlow({
   const [savePrimaryProduct, setSavePrimaryProduct] = useState(false);
   const [extraItems, setExtraItems] = useState<ExtraItem[]>([]);
   const [taxPercent, setTaxPercent] = useState(0);
-  const [dueInDays, setDueInDays] = useState(0);
+  const [dueInDays, setDueInDays] = useState(defaultTermsDays);
+  const [clientNote, setClientNote] = useState(defaultClientNote);
+  const [privateMemo, setPrivateMemo] = useState("");
+  const [invoiceTerms, setInvoiceTerms] = useState(defaultClientTerms);
   const [showDetails, setShowDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -182,7 +191,10 @@ export function NewInvoiceFlow({
     setSavePrimaryProduct(false);
     setExtraItems([]);
     setTaxPercent(0);
-    setDueInDays(0);
+    setDueInDays(defaultTermsDays);
+    setClientNote(defaultClientNote);
+    setPrivateMemo("");
+    setInvoiceTerms(defaultClientTerms);
     setShowDetails(false);
     setError(null);
     setSentUrl(null);
@@ -201,6 +213,9 @@ export function NewInvoiceFlow({
         clientName,
         dueInDays,
         taxPercent,
+        clientNote,
+        privateMemo,
+        clientTerms: invoiceTerms,
         items: [
           {
             description,
@@ -714,6 +729,54 @@ export function NewInvoiceFlow({
       </button>
     );
 
+  const renderAdditionalDetails = (inputBg: string) => (
+    <details className="mb-4 rounded-2xl border border-line bg-card p-4">
+      <summary className="cursor-pointer list-none font-display text-base font-bold">
+        Additional details
+      </summary>
+      <div className="mt-4 grid gap-4">
+        <label className="flex flex-col gap-1.5 text-sm">
+          Client note
+          <textarea
+            value={clientNote}
+            onChange={(e) => setClientNote(e.target.value)}
+            rows={3}
+            maxLength={1000}
+            placeholder="Thank your client or add payment instructions."
+            className={`resize-none rounded-xl border border-line ${inputBg} px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent`}
+          />
+          <span className="text-xs text-muted">Shown on the branded invoice page and email.</span>
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm">
+          Terms & Conditions
+          <textarea
+            value={invoiceTerms}
+            onChange={(e) => setInvoiceTerms(e.target.value)}
+            rows={5}
+            maxLength={4000}
+            placeholder="Agreement clients must accept before paying."
+            className={`resize-none rounded-xl border border-line ${inputBg} px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent`}
+          />
+          <span className="text-xs text-muted">
+            Clients must agree before opening the secure Stripe payment page.
+          </span>
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm">
+          Private memo
+          <textarea
+            value={privateMemo}
+            onChange={(e) => setPrivateMemo(e.target.value)}
+            rows={3}
+            maxLength={1000}
+            placeholder="Internal note for your dashboard only."
+            className={`resize-none rounded-xl border border-line ${inputBg} px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent`}
+          />
+          <span className="text-xs text-muted">Not shown to the client.</span>
+        </label>
+      </div>
+    </details>
+  );
+
   const recentClientChips = recentClients.length > 0 && (
     <div className="mb-5">
       <p className="text-xs uppercase tracking-wide text-muted mb-2">Send again to</p>
@@ -918,6 +981,7 @@ export function NewInvoiceFlow({
             {renderTaxRow("bg-card")}
             {dueChips}
             {renderDetails("bg-card")}
+            {renderAdditionalDetails("bg-card")}
             <div className="flex-1" />
             <button
               type="button"
@@ -1053,6 +1117,7 @@ export function NewInvoiceFlow({
                     {renderTaxRow("bg-background")}
                   </div>
                 </div>
+                <div className="mt-2">{renderAdditionalDetails("bg-background")}</div>
               </section>
 
               <aside className="lg:sticky lg:top-8 lg:self-start">
@@ -1099,6 +1164,12 @@ export function NewInvoiceFlow({
                         <p className="text-sm text-muted">Line items will appear here.</p>
                       )}
                     </div>
+
+                    {clientNote.trim().length > 0 && (
+                      <p className="mt-4 rounded-xl bg-card p-3 text-sm leading-relaxed text-muted">
+                        {clientNote}
+                      </p>
+                    )}
                   </div>
 
                   <div className="mt-4 rounded-2xl border border-line bg-background p-5">
