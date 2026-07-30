@@ -11,6 +11,7 @@ import {
   ChevronRight,
   CircleHelp,
   CreditCard,
+  ClipboardCheck,
   FileText,
   History,
   LayoutDashboard,
@@ -33,6 +34,7 @@ const navGroups = [
     label: "Money",
     items: [
       { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+      { href: "/estimates", label: "Estimates", icon: ClipboardCheck },
       { href: "/invoices", label: "Invoices", icon: FileText },
       { href: "/payments", label: "Payments", icon: CreditCard },
     ],
@@ -52,9 +54,9 @@ const navGroups = [
 
 const mobileItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/estimates", label: "Estimates", icon: ClipboardCheck },
   { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/products", label: "Products", icon: Boxes },
-  { href: "/branding", label: "Branding", icon: Brush },
   { href: "/payments", label: "Payments", icon: CreditCard },
 ];
 

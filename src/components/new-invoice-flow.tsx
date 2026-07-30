@@ -44,6 +44,18 @@ type InvoiceItem = {
 
 type Step = "amount" | "details" | "review" | "sent";
 
+type InitialEstimate = {
+  id: string;
+  clientEmail: string;
+  clientName: string | null;
+  taxPercent: number;
+  dueInDays: number;
+  clientNote: string;
+  clientTerms: string;
+  privateMemo: string;
+  items: InvoiceItem[];
+};
+
 function createBlankItem(unitCents = 0): InvoiceItem {
   return {
     id: crypto.randomUUID(),
@@ -61,6 +73,7 @@ export function NewInvoiceFlow({
   recentClients,
   products,
   prefillClient,
+  initialEstimate,
   defaultTermsDays,
   defaultClientTerms,
   defaultClientNote,
@@ -68,21 +81,28 @@ export function NewInvoiceFlow({
   recentClients: RecentClient[];
   products: SavedProduct[];
   prefillClient?: RecentClient | null;
+  initialEstimate?: InitialEstimate | null;
   defaultTermsDays: number;
   defaultClientTerms: string;
   defaultClientNote: string;
 }) {
-  const [step, setStep] = useState<Step>("amount");
+  const [step, setStep] = useState<Step>(initialEstimate ? "details" : "amount");
   const [mobileAmountCents, setMobileAmountCents] = useState(0);
-  const [clientEmail, setClientEmail] = useState(prefillClient?.clientEmail ?? "");
-  const [clientName, setClientName] = useState(prefillClient?.clientName ?? "");
-  const [items, setItems] = useState<InvoiceItem[]>([]);
-  const [taxPercent, setTaxPercent] = useState(0);
-  const [dueInDays, setDueInDays] = useState(defaultTermsDays);
-  const [clientNote, setClientNote] = useState(defaultClientNote);
-  const [privateMemo, setPrivateMemo] = useState("");
-  const [invoiceTerms, setInvoiceTerms] = useState(defaultClientTerms);
-  const [showDetails, setShowDetails] = useState(false);
+  const [clientEmail, setClientEmail] = useState(
+    initialEstimate?.clientEmail ?? prefillClient?.clientEmail ?? ""
+  );
+  const [clientName, setClientName] = useState(
+    initialEstimate?.clientName ?? prefillClient?.clientName ?? ""
+  );
+  const [items, setItems] = useState<InvoiceItem[]>(initialEstimate?.items ?? []);
+  const [taxPercent, setTaxPercent] = useState(initialEstimate?.taxPercent ?? 0);
+  const [dueInDays, setDueInDays] = useState(initialEstimate?.dueInDays ?? defaultTermsDays);
+  const [clientNote, setClientNote] = useState(initialEstimate?.clientNote ?? defaultClientNote);
+  const [privateMemo, setPrivateMemo] = useState(initialEstimate?.privateMemo ?? "");
+  const [invoiceTerms, setInvoiceTerms] = useState(
+    initialEstimate?.clientTerms ?? defaultClientTerms
+  );
+  const [showDetails, setShowDetails] = useState(Boolean(initialEstimate?.clientName));
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sentUrl, setSentUrl] = useState<string | null>(null);
@@ -207,6 +227,8 @@ export function NewInvoiceFlow({
         clientNote,
         privateMemo,
         clientTerms: invoiceTerms,
+        estimateId: initialEstimate?.id,
+        deliveryMode: "stripe_email",
         items: items.map((item) => ({
           description: item.description,
           quantity: item.quantity,
@@ -738,10 +760,13 @@ export function NewInvoiceFlow({
           />
         </svg>
       </div>
-      <h1 className="mb-1 font-display text-2xl font-extrabold">Invoice sent</h1>
-      <p className="mb-8 text-sm text-muted">
-        {formatCents(totalCents)} to {clientEmail}. They&apos;ll get an email, or you can share
-        the link directly right now.
+      <h1 className="mb-1 font-display text-2xl font-extrabold">Invoice sent successfully</h1>
+      <p className="mb-2 text-sm text-muted">
+        {formatCents(totalCents)} invoice for {clientEmail}.
+      </p>
+      <p className="mb-8 max-w-sm text-sm text-muted">
+        We created the secure payment page and sent the invoice email. You can also share the link
+        directly with your client.
       </p>
 
       <button
@@ -749,14 +774,14 @@ export function NewInvoiceFlow({
         onClick={share}
         className="mb-3 w-full rounded-full bg-accent py-4 font-display font-bold text-accent-contrast"
       >
-        {copied ? "Link copied" : "Share invoice link"}
+        {copied ? "Invoice link copied" : "Copy invoice link"}
       </button>
       <button
         type="button"
         onClick={resetFlow}
         className="mb-3 w-full rounded-full border border-line py-4 font-medium"
       >
-        Send another
+        Create another invoice
       </button>
       <Link href="/dashboard" className="mt-2 text-sm text-muted">
         Back to dashboard
@@ -885,7 +910,7 @@ export function NewInvoiceFlow({
               onClick={send}
               className="rounded-full bg-accent py-4 font-display font-bold text-accent-contrast disabled:opacity-60"
             >
-              {loading ? "Sending..." : `Send invoice for ${formatCents(totalCents)}`}
+              {loading ? "Finalizing..." : `Finalize and send ${formatCents(totalCents)}`}
             </button>
           </>
         )}
@@ -895,7 +920,126 @@ export function NewInvoiceFlow({
 
       <div className="hidden flex-1 px-8 py-8 md:block">
         <div className="mx-auto w-full max-w-7xl">
-          {step !== "sent" ? (
+          {step === "review" ? (
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_27rem]">
+              <section className="rounded-2xl border border-line bg-card p-6 shadow-sm">
+                <div className="mb-6 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted">Review invoice</p>
+                    <h1 className="font-display text-3xl font-extrabold tracking-tight">
+                      Finalize and send
+                    </h1>
+                    <p className="mt-1 max-w-2xl text-sm text-muted">
+                      Review the client, line items, tax, payment terms, and payout before creating
+                      the Stripe invoice and sending it to the client.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStep("details")}
+                    className="text-sm font-medium text-muted hover:text-foreground"
+                  >
+                    Edit
+                  </button>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-2xl border border-line bg-background p-5">
+                    <p className="text-xs uppercase tracking-wide text-muted">Bill to</p>
+                    <p className="mt-2 font-display text-xl font-bold">
+                      {clientName || clientEmail}
+                    </p>
+                    <p className="text-sm text-muted">{clientEmail}</p>
+                  </div>
+                  <div className="rounded-2xl border border-line bg-background p-5">
+                    <p className="text-xs uppercase tracking-wide text-muted">Payment terms</p>
+                    <p className="mt-2 font-display text-xl font-bold">{dueLabel}</p>
+                    <p className="text-sm text-muted">Secure checkout powered by Stripe</p>
+                  </div>
+                </div>
+
+                <div className="mt-5 rounded-2xl border border-line bg-background p-5">
+                  <p className="mb-3 text-xs uppercase tracking-wide text-muted">Line items</p>
+                  <div className="grid gap-3">
+                    {invoiceRows.map((item) => (
+                      <div key={item.id} className="flex items-start justify-between gap-4 text-sm">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{item.description}</p>
+                          <p className="text-xs text-muted">Qty {item.quantity}</p>
+                        </div>
+                        <p className="shrink-0 font-medium tabular-nums">
+                          {formatCents(item.amount)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {(clientNote || invoiceTerms || privateMemo) && (
+                  <div className="mt-5 rounded-2xl border border-line bg-background p-5">
+                    <p className="mb-3 text-xs uppercase tracking-wide text-muted">Details</p>
+                    <div className="grid gap-4 text-sm">
+                      {clientNote && (
+                        <div>
+                          <p className="font-medium">Client note</p>
+                          <p className="mt-1 whitespace-pre-wrap leading-relaxed text-muted">
+                            {clientNote}
+                          </p>
+                        </div>
+                      )}
+                      {invoiceTerms && (
+                        <div>
+                          <p className="font-medium">Terms & Conditions</p>
+                          <p className="mt-1 max-h-36 overflow-auto whitespace-pre-wrap rounded-xl bg-card p-3 leading-relaxed text-muted">
+                            {invoiceTerms}
+                          </p>
+                        </div>
+                      )}
+                      {privateMemo && (
+                        <div>
+                          <p className="font-medium">Private memo</p>
+                          <p className="mt-1 whitespace-pre-wrap leading-relaxed text-muted">
+                            {privateMemo}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              <aside className="lg:sticky lg:top-8 lg:self-start">
+                <div className="rounded-2xl border border-line bg-card p-5 shadow-sm">
+                  <p className="text-sm font-medium text-muted">Final total</p>
+                  <p className="mt-1 font-display text-4xl font-extrabold tabular-nums">
+                    {formatCents(totalCents)}
+                  </p>
+                  <div className="mt-5 rounded-2xl border border-line bg-background p-5">
+                    {totalsRows}
+                  </div>
+                  {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+                  <button
+                    type="button"
+                    disabled={!canSend || loading}
+                    onClick={send}
+                    className="mt-5 w-full rounded-full bg-accent px-5 py-4 font-display font-bold text-accent-contrast disabled:opacity-40"
+                  >
+                    {loading ? "Finalizing..." : "Finalize and send invoice"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep("details")}
+                    className="mt-3 w-full rounded-full border border-line px-5 py-3 text-sm font-bold"
+                  >
+                    Back to edit
+                  </button>
+                  <p className="mt-3 text-center text-xs leading-relaxed text-muted">
+                    Finalizing creates the Stripe invoice and sends the secure payment link.
+                  </p>
+                </div>
+              </aside>
+            </div>
+          ) : step !== "sent" ? (
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_27rem]">
               <section className="rounded-2xl border border-line bg-card p-6 shadow-sm">
                 <div className="mb-5 flex items-start justify-between gap-4">
@@ -1022,15 +1166,11 @@ export function NewInvoiceFlow({
 
                   <button
                     type="button"
-                    disabled={!canSend || loading}
-                    onClick={send}
+                    disabled={!canSend}
+                    onClick={() => setStep("review")}
                     className="mt-5 w-full rounded-full bg-accent px-5 py-4 font-display font-bold text-accent-contrast disabled:opacity-40"
                   >
-                    {loading
-                      ? "Sending..."
-                      : totalCents > 0
-                        ? `Send invoice for ${formatCents(totalCents)}`
-                        : "Send invoice"}
+                    {totalCents > 0 ? `Review invoice for ${formatCents(totalCents)}` : "Review invoice"}
                   </button>
 
                   <p className="mt-3 text-center text-xs leading-relaxed text-muted">

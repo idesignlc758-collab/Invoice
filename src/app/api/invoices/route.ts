@@ -4,48 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { stripe, calculateFeeAmount } from "@/lib/stripe";
 import { formatCents } from "@/lib/format";
 import { sendBrandedInvoiceEmail } from "@/lib/mail";
-
-type IncomingItem = {
-  description: string;
-  quantity: number;
-  unitAmountCents: number;
-  productId?: string | null;
-  saveProduct: boolean;
-  productType: string;
-  taxable: boolean;
-};
-
-function parseItems(raw: unknown): IncomingItem[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((entry) => {
-      const item = entry as Record<string, unknown>;
-      const description = String(item.description ?? "").trim();
-      const quantity = Math.round(Number(item.quantity));
-      const unitAmountCents = Math.round(Number(item.unitAmountCents));
-      const productId = item.productId ? String(item.productId) : null;
-      const productType = String(item.productType ?? "service").trim() || "service";
-      const taxable = item.taxable === undefined ? true : Boolean(item.taxable);
-
-      return {
-        description,
-        quantity,
-        unitAmountCents,
-        productId,
-        productType,
-        taxable,
-        saveProduct: Boolean(item.saveProduct),
-      };
-    })
-    .filter(
-      (item) =>
-        item.description.length > 0 &&
-        Number.isFinite(item.quantity) &&
-        item.quantity > 0 &&
-        Number.isFinite(item.unitAmountCents) &&
-        item.unitAmountCents > 0
-    );
-}
+import { parseLineItems, summarizeItems } from "@/lib/line-items";
 
 async function resolveTaxRateId(percentage: number): Promise<string> {
   const existing = await stripe.taxRates.list({ active: true, limit: 100 });
@@ -118,8 +77,9 @@ export async function POST(request: Request) {
   const clientNote = String(body.clientNote ?? "").trim().slice(0, 1000) || null;
   const privateMemo = String(body.privateMemo ?? "").trim().slice(0, 1000) || null;
   const clientTerms = String(body.clientTerms ?? "").trim().slice(0, 4000) || null;
-  const items = parseItems(body.items);
+  const items = parseLineItems(body.items);
   const deliveryMode = body.deliveryMode === "stripe_email" ? "stripe_email" : "branded_email";
+  const estimateId = body.estimateId ? String(body.estimateId) : null;
 
   const requestedTax = Number(body.taxPercent);
   const taxPercent = Number.isFinite(requestedTax)
@@ -135,6 +95,26 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Enter a client email and at least one line item with an amount." },
       { status: 400 }
+    );
+  }
+
+  const sourceEstimate = estimateId
+    ? await prisma.estimate.findFirst({
+        where: { id: estimateId, userId: user.id },
+        select: { id: true, status: true },
+      })
+    : null;
+
+  if (estimateId && !sourceEstimate) {
+    return NextResponse.json({ error: "Estimate not found." }, { status: 404 });
+  }
+  if (sourceEstimate?.status === "converted") {
+    return NextResponse.json({ error: "This estimate has already been converted." }, { status: 409 });
+  }
+  if (sourceEstimate && sourceEstimate.status !== "accepted") {
+    return NextResponse.json(
+      { error: "Only accepted estimates can be converted into invoices." },
+      { status: 409 }
     );
   }
 
@@ -301,10 +281,7 @@ export async function POST(request: Request) {
     sent = await stripe.invoices.sendInvoice(invoice.id!);
   }
 
-  const summary =
-    items.length === 1
-      ? items[0].description
-      : `${items[0].description} + ${items.length - 1} more`;
+  const summary = summarizeItems(items);
 
   const client = await prisma.client.upsert({
     where: { userId_email: { userId: user.id, email: normalizedClientEmail } },
@@ -356,6 +333,7 @@ export async function POST(request: Request) {
       clientTerms,
       clientNote,
       privateMemo,
+      sourceEstimateId: sourceEstimate?.id ?? null,
       dueDate: sent.due_date ? new Date(sent.due_date * 1000) : null,
       lineItems: {
         create: resolvedItems.map((item, index) => ({
@@ -383,6 +361,16 @@ export async function POST(request: Request) {
     },
     data: { timesUsed: { increment: 1 } },
   });
+
+  if (sourceEstimate) {
+    await prisma.estimate.update({
+      where: { id: sourceEstimate.id },
+      data: {
+        status: "converted",
+        convertedAt: new Date(),
+      },
+    });
+  }
 
   const publicInvoiceUrl = `${appUrl}/pay/${savedInvoice.publicToken}`;
   let brandedEmailSent = false;

@@ -118,3 +118,67 @@ export async function sendBrandedInvoiceEmail(params: {
 
   return true;
 }
+
+export async function sendBrandedEstimateEmail(params: {
+  to: string;
+  clientName?: string | null;
+  businessName: string;
+  estimateDescription: string;
+  totalCents: number;
+  currency: string;
+  publicEstimateUrl: string;
+  supportEmail?: string | null;
+  footer?: string | null;
+  clientNote?: string | null;
+  expiresAt?: Date | null;
+}) {
+  if (!canSendMail()) return false;
+
+  const {
+    to,
+    clientName,
+    businessName,
+    estimateDescription,
+    totalCents,
+    currency,
+    publicEstimateUrl,
+    supportEmail,
+    footer,
+    clientNote,
+    expiresAt,
+  } = params;
+  const greeting = clientName ? `Hi ${clientName},` : "Hi,";
+  const amount = formatCents(totalCents, currency);
+  const replyLine = supportEmail ? `Questions? Reply to ${supportEmail}.` : "";
+  const expiryLine = expiresAt
+    ? `This estimate is valid until ${new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }).format(expiresAt)}.`
+    : "";
+
+  await transporter.sendMail({
+    from: fromAddress,
+    to,
+    subject: `${businessName} sent you an estimate for ${amount}`,
+    text:
+      `${greeting}\n\n` +
+      `${businessName} sent you an estimate for ${amount} for "${estimateDescription}".\n\n` +
+      (clientNote ? `${clientNote}\n\n` : "") +
+      (expiryLine ? `${expiryLine}\n\n` : "") +
+      `Review the estimate: ${publicEstimateUrl}\n\n` +
+      `${replyLine}\n` +
+      `${footer ?? "Estimate prepared by the service provider. Payment will be processed securely after invoice approval."}`,
+    html:
+      `<p>${greeting}</p>` +
+      `<p><strong>${businessName}</strong> sent you an estimate for <strong>${amount}</strong> for "${estimateDescription}".</p>` +
+      (clientNote ? `<p>${clientNote}</p>` : "") +
+      (expiryLine ? `<p>${expiryLine}</p>` : "") +
+      `<p><a href="${publicEstimateUrl}">Review the estimate</a></p>` +
+      (replyLine ? `<p>${replyLine}</p>` : "") +
+      `<p style="color:#666;font-size:12px">${footer ?? "Estimate prepared by the service provider. Payment will be processed securely after invoice approval."}</p>`,
+  });
+
+  return true;
+}
