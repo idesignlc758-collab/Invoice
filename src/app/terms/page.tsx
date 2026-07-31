@@ -82,9 +82,10 @@ export default function TermsPage() {
           <section>
             <h2 className="font-display text-lg font-bold mb-2">5. Fees</h2>
             <p className="text-muted mb-3">
-              We charge a platform fee of <strong className="text-foreground">5%</strong>, calculated
-              on the pre-tax subtotal of each invoice. Sales tax you add to an invoice is passed
-              through to you in full and is not included in our fee calculation.
+              We charge a platform fee of{" "}
+              <strong className="text-foreground">5% of the pre-tax subtotal, plus 30¢ per invoice</strong>.
+              Sales tax you add to an invoice is passed through to you in full and is not included
+              in our fee calculation.
             </p>
             <p className="text-muted">
               Stripe charges its own processing fees, and applies a cross-border fee on payouts to

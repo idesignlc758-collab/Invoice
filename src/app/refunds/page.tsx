@@ -65,7 +65,8 @@ export default function RefundsPage() {
           <section>
             <h2 className="font-display text-lg font-bold mb-2">Platform and processing fees</h2>
             <p className="text-muted">
-              On a refunded invoice, our 5% platform fee is{" "}
+              On a refunded invoice, our platform fee (5% of the pre-tax subtotal, plus 30¢ per
+              invoice) is{" "}
               <strong className="text-foreground">[RETURNED / RETAINED]</strong>. Stripe&apos;s
               payment processing fees are not returned to the business when a payment is refunded —
               this is Stripe&apos;s policy, not ours. Where a refund is issued after funds have

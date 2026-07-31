@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Keypad } from "@/components/keypad";
 import { formatCents, initials } from "@/lib/format";
+import { PLATFORM_FEE_PERCENT, PLATFORM_FEE_FLAT_CENTS, calculateFeeAmount } from "@/lib/fees";
 
-const PLATFORM_FEE_PERCENT = 5;
 const QUICK_AMOUNTS = [2500, 5000, 10000, 25000, 50000];
 const DUE_PRESETS = [
   { label: "Pay now", days: 0 },
@@ -117,7 +117,7 @@ export function NewInvoiceFlow({
   );
   const taxCents = Math.round(taxableSubtotalCents * (taxPercent / 100));
   const totalCents = subtotalCents + taxCents;
-  const feeCents = Math.round(subtotalCents * (PLATFORM_FEE_PERCENT / 100));
+  const feeCents = calculateFeeAmount(subtotalCents);
   const netCents = totalCents - feeCents;
   const dueLabel = DUE_PRESETS.find((preset) => preset.days === dueInDays)?.label ?? "Pay now";
   const hasValidItems = items.some(
@@ -775,7 +775,9 @@ export function NewInvoiceFlow({
         <span className="font-display font-bold tabular-nums">{formatCents(totalCents)}</span>
       </div>
       <div className="flex justify-between border-t border-line py-1.5 text-sm">
-        <span className="text-muted">Platform fee ({PLATFORM_FEE_PERCENT}%)</span>
+        <span className="text-muted">
+          Platform fee ({PLATFORM_FEE_PERCENT}% + {formatCents(PLATFORM_FEE_FLAT_CENTS)})
+        </span>
         <span className="tabular-nums">{formatCents(feeCents)}</span>
       </div>
       <div className="flex justify-between border-t border-line py-1.5 text-sm font-medium">

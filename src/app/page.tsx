@@ -31,7 +31,7 @@ const proof = [
   "Branded, white-label invoices",
   "Stripe-secured checkout",
   "Cards, Link, ACH, Cash App",
-  "5% per paid invoice, no monthly fee",
+  "5% + 30¢ per paid invoice, no monthly fee",
 ];
 
 const anatomy = [
@@ -262,7 +262,7 @@ export default async function HomePage() {
                 Simple pricing
               </p>
               <h2 className={`mt-2 text-3xl font-bold tracking-tight md:text-5xl ${fontDisplay}`}>
-                5% per paid invoice.
+                5% + 30¢ per paid invoice.
                 <br />
                 Nothing else.
               </h2>
