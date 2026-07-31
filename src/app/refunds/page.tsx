@@ -45,11 +45,24 @@ export default function RefundsPage() {
           </section>
 
           <section>
+            <h2 className="font-display text-lg font-bold mb-2">You receive the full amount</h2>
+            <p className="text-muted">
+              When a refund is approved, you get back exactly what you paid — nothing is deducted
+              from your refund. Any cost that can&apos;t be recovered from Stripe is absorbed by us,
+              not passed on to you.
+            </p>
+          </section>
+
+          <section>
             <h2 className="font-display text-lg font-bold mb-2">Refund window</h2>
             <p className="text-muted">
               Refund requests should be raised within{" "}
-              <strong className="text-foreground">[NUMBER]</strong> days of payment. Requests after
-              that period are at the discretion of the business that issued the invoice.
+              <strong className="text-foreground">6 days</strong> of payment. This window is
+              intentionally short: funds typically sit in the connected account&apos;s Stripe
+              balance for about a week before payout, so a request inside this window can almost
+              always be reversed cleanly. Requests after 6 days are at the discretion of the
+              business that issued the invoice, and may not be recoverable from the connected
+              account once funds have paid out.
             </p>
           </section>
 
@@ -66,12 +79,12 @@ export default function RefundsPage() {
             <h2 className="font-display text-lg font-bold mb-2">Platform and processing fees</h2>
             <p className="text-muted">
               On a refunded invoice, our platform fee (5% of the pre-tax subtotal, plus 30¢ per
-              invoice) is{" "}
-              <strong className="text-foreground">[RETURNED / RETAINED]</strong>. Stripe&apos;s
-              payment processing fees are not returned to the business when a payment is refunded —
-              this is Stripe&apos;s policy, not ours. Where a refund is issued after funds have
-              already been paid out, the amount may be recovered from the business&apos;s next
-              payout or Stripe balance.
+              invoice) is <strong className="text-foreground">returned in full</strong> to the
+              business, so refunding a client doesn&apos;t leave the business worse off than if the
+              invoice had never been paid. The one cost nobody gets back is Stripe&apos;s own
+              processing fee on the original charge — Stripe never returns this once a payment is
+              refunded, on any platform. We absorb that cost ourselves rather than passing it to the
+              business or the client.
             </p>
           </section>
 

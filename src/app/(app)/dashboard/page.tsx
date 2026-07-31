@@ -79,8 +79,8 @@ export default async function DashboardPage({
         </div>
       )}
 
-      <form action="/api/connect/onboard" method="POST" className="mt-5 flex flex-wrap items-end gap-3">
-        <label className="flex min-w-56 flex-1 flex-col gap-1.5 text-sm">
+      <form action="/api/connect/onboard" method="POST" className="mt-5 flex flex-col items-start gap-4">
+        <label className="flex w-full max-w-xs flex-col gap-1.5 text-sm">
           Business country
           <select
             name="country"
@@ -94,6 +94,27 @@ export default async function DashboardPage({
             ))}
           </select>
         </label>
+        {!user.stripeAccountId && (
+          <label className="flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              name="acceptedTerms"
+              required
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]"
+            />
+            <span>
+              I agree to the{" "}
+              <Link href="/terms" target="_blank" className="text-accent underline">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/refunds" target="_blank" className="text-accent underline">
+                Refund Policy
+              </Link>
+              .
+            </span>
+          </label>
+        )}
         <button
           type="submit"
           className="min-h-12 rounded-2xl bg-accent px-5 text-sm font-bold text-accent-contrast"

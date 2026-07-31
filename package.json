@@ -14,9 +14,11 @@
     "@libsql/client": "^0.17.4",
     "@prisma/adapter-libsql": "^7.9.1",
     "@prisma/client": "^7.9.0",
+    "@types/pdfkit": "^0.17.6",
     "@vercel/blob": "^2.6.1",
     "lucide-react": "^1.27.0",
     "next": "16.2.12",
+    "pdfkit": "^0.19.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "stripe": "^22.3.2"

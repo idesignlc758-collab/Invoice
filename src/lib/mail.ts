@@ -5,6 +5,12 @@ const mailtrapToken = process.env.MAILTRAP_API_TOKEN ?? process.env.MAILTRAP_API
 const fromAddress = process.env.MAIL_FROM ?? "";
 const fromName = process.env.MAIL_FROM_NAME ?? "Invoice by iDesignLC";
 
+type MailtrapAttachment = {
+  filename: string;
+  content: string; // base64-encoded
+  type: string; // MIME type
+};
+
 type MailtrapMessage = {
   to: string;
   cc?: string[];
@@ -14,6 +20,7 @@ type MailtrapMessage = {
   html: string;
   fromName?: string | null;
   replyTo?: string | null;
+  attachments?: MailtrapAttachment[];
 };
 
 function canSendMail() {
@@ -52,6 +59,16 @@ async function sendMailtrapEmail(message: MailtrapMessage) {
         subject: message.subject,
         text: message.text,
         html: message.html,
+        ...(message.attachments?.length
+          ? {
+              attachments: message.attachments.map((attachment) => ({
+                filename: attachment.filename,
+                content: attachment.content,
+                type: attachment.type,
+                disposition: "attachment",
+              })),
+            }
+          : {}),
       }),
     });
 
@@ -368,5 +385,56 @@ export async function sendBrandedEstimateEmail(params: {
       `<p><a href="${escapeHtml(publicEstimateUrl)}">Review the estimate</a></p>` +
       (replyLine ? paragraph(replyLine) : "") +
       `<p style="color:#666;font-size:12px">${escapeHtml(footerText)}</p>`,
+  });
+}
+
+// Sent to the client the moment they check the agreement box on the payment
+// page (not when payment completes) -- the record needs to be timestamped to
+// when they agreed, independent of whether they go on to finish paying.
+export async function sendTermsAgreementEmail(params: {
+  to: string;
+  clientName?: string | null;
+  businessName: string;
+  invoiceDescription: string;
+  totalCents: number;
+  currency: string;
+  agreedAt: Date;
+  pdfBase64: string;
+}) {
+  const { to, clientName, businessName, invoiceDescription, totalCents, currency, agreedAt, pdfBase64 } =
+    params;
+  const greeting = clientName ? `Hi ${clientName},` : "Hi,";
+  const amount = formatCents(totalCents, currency);
+  const agreedAtText = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(agreedAt);
+
+  await sendMailtrapEmail({
+    to,
+    subject: `Your agreement on file for ${businessName}'s invoice`,
+    text:
+      `${greeting}\n\n` +
+      `This confirms that on ${agreedAtText}, you agreed to the Terms of Service, Privacy ` +
+      `Policy, and Refund Policy of Invoice by iDesignLC before paying ${businessName}'s ` +
+      `invoice for "${invoiceDescription}" (${amount}).\n\n` +
+      `A copy of all three documents is attached to this email for your records.\n\n` +
+      `Questions? Reply to this email or contact support@idesignlc.com.`,
+    html:
+      paragraph(greeting) +
+      paragraph(
+        `This confirms that on ${agreedAtText}, you agreed to the Terms of Service, Privacy ` +
+          `Policy, and Refund Policy of Invoice by iDesignLC before paying ${businessName}'s ` +
+          `invoice for "${invoiceDescription}" (${amount}).`
+      ) +
+      paragraph("A copy of all three documents is attached to this email for your records.") +
+      paragraph("Questions? Reply to this email or contact support@idesignlc.com."),
+    attachments: [
+      {
+        filename: "Invoice-Terms-Privacy-Refund-Policy.pdf",
+        content: pdfBase64,
+        type: "application/pdf",
+      },
+    ],
   });
 }
