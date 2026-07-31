@@ -5,11 +5,9 @@ import {
   Boxes,
   BriefcaseBusiness,
   Brush,
-  CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  CircleHelp,
   CreditCard,
   ClipboardCheck,
   FileText,
@@ -18,8 +16,6 @@ import {
   LifeBuoy,
   LogOut,
   Plus,
-  Search,
-  Settings,
   ShieldCheck,
   Sparkles,
   WalletCards,
@@ -27,7 +23,7 @@ import {
 import { SignOutButton as ClerkSignOutButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const navGroups = [
   {
@@ -45,10 +41,6 @@ const navGroups = [
       { href: "/products", label: "Products", icon: Boxes },
       { href: "/branding", label: "Branding", icon: Brush },
     ],
-  },
-  {
-    label: "Account",
-    items: [{ href: "/settings", label: "Settings", icon: Settings }],
   },
 ];
 
@@ -92,7 +84,6 @@ export function Sidebar() {
   const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress;
   const displayName = displayAccountName(email, user?.fullName);
   const initial = userInitial(email, user?.fullName);
-  const [query, setQuery] = useState("");
   const [accountOpen, setAccountOpen] = useState(false);
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
   const [collapsed, setCollapsed] = useState(
@@ -124,16 +115,41 @@ export function Sidebar() {
     };
   }, []);
 
-  const filteredGroups = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return navGroups;
-    return navGroups
-      .map((group) => ({
-        ...group,
-        items: group.items.filter((item) => item.label.toLowerCase().includes(needle)),
-      }))
-      .filter((group) => group.items.length > 0);
-  }, [query]);
+  const accountMenuLinks = (
+    <>
+      <Link href="/settings" className="mt-2 flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm text-muted hover:bg-card hover:text-foreground">
+        <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
+        Account settings
+      </Link>
+      <Link href="/branding" className="flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm text-muted hover:bg-card hover:text-foreground">
+        <Sparkles className="h-4 w-4" aria-hidden="true" />
+        Branding
+      </Link>
+      <Link href="/payments" className="flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm text-muted hover:bg-card hover:text-foreground">
+        <History className="h-4 w-4" aria-hidden="true" />
+        Payment history
+      </Link>
+      <a href="mailto:support@idesignlc.com" className="flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm text-muted hover:bg-card hover:text-foreground">
+        <LifeBuoy className="h-4 w-4" aria-hidden="true" />
+        Support
+      </a>
+      <div className="my-2 h-px bg-line" />
+      <div className="flex items-center gap-2 rounded-xl bg-success-soft px-3 py-2 text-sm font-medium text-success">
+        <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+        Stripe secure
+      </div>
+      <ClerkSignOutButton redirectUrl="/">
+        <button className="mt-2 flex min-h-10 w-full items-center gap-3 rounded-xl px-3 text-left text-sm text-muted hover:bg-card hover:text-foreground">
+          <LogOut className="h-4 w-4" aria-hidden="true" />
+          Log out
+        </button>
+      </ClerkSignOutButton>
+      <div className="mt-2 flex items-center justify-between border-t border-line px-3 pt-2 text-xs text-muted">
+        <Link href="/terms" className="hover:text-foreground">Terms</Link>
+        <Link href="/refunds" className="hover:text-foreground">Refunds</Link>
+      </div>
+    </>
+  );
 
   return (
     <>
@@ -192,22 +208,8 @@ export function Sidebar() {
             {!collapsed && <span>New invoice</span>}
           </Link>
 
-          {!collapsed && (
-            <label className="mt-4 flex min-h-10 items-center gap-2 rounded-2xl border border-line bg-card px-3 text-sm text-muted focus-within:ring-2 focus-within:ring-accent">
-              <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span className="sr-only">Search navigation</span>
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search"
-                className="min-w-0 flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none placeholder:text-muted"
-              />
-              <span className="rounded-lg bg-background px-2 py-1 text-[11px] text-muted">/</span>
-            </label>
-          )}
-
           <nav className="mt-4 flex flex-col gap-3 text-sm">
-            {filteredGroups.map((group) => (
+            {navGroups.map((group) => (
               <div key={group.label}>
                 {!collapsed && (
                   <p className="mb-1.5 px-3 text-[11px] font-semibold text-muted">{group.label}</p>
@@ -264,54 +266,35 @@ export function Sidebar() {
 
           <div className="flex-1" />
 
-          {!collapsed && setupStatus && setupStatus.complete < setupStatus.total && (
-            <div className="mb-3 rounded-2xl border border-line bg-card p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold">Setup checklist</p>
-                  <p className="mt-1 text-xs text-muted">
-                    {setupStatus.complete} of {setupStatus.total} complete
-                  </p>
-                </div>
-                <span className="rounded-full bg-background px-2 py-1 text-[11px] font-semibold text-muted">
-                  {Math.round((setupStatus.complete / setupStatus.total) * 100)}%
+          {setupStatus && setupStatus.complete < setupStatus.total && (
+            <Link
+              href={setupStatus.tasks.find((task) => !task.done)?.href ?? "/settings"}
+              title={`Setup ${setupStatus.complete}/${setupStatus.total} complete`}
+              className={`mb-3 flex min-h-11 items-center gap-3 rounded-2xl border border-line bg-card font-medium text-foreground transition hover:border-accent/60 ${
+                collapsed ? "justify-center px-0" : "px-3"
+              }`}
+            >
+              <span className="relative flex h-6 w-6 shrink-0 items-center justify-center">
+                <svg viewBox="0 0 24 24" className="h-6 w-6 -rotate-90">
+                  <circle cx="12" cy="12" r="10" fill="none" stroke="var(--line)" strokeWidth="3" />
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    fill="none"
+                    stroke="var(--accent)"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray={`${(setupStatus.complete / setupStatus.total) * 62.8} 62.8`}
+                  />
+                </svg>
+              </span>
+              {!collapsed && (
+                <span className="min-w-0 flex-1 truncate text-sm">
+                  Finish setup · {setupStatus.complete}/{setupStatus.total}
                 </span>
-              </div>
-              <div className="mt-3 flex flex-col gap-1">
-                {setupStatus.tasks.slice(0, 5).map((task) => (
-                  <Link
-                    key={task.id}
-                    href={task.href}
-                    className="flex min-h-8 items-center gap-2 rounded-xl px-2 text-xs text-muted transition hover:bg-background hover:text-foreground"
-                  >
-                    <span
-                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
-                        task.done
-                          ? "border-success bg-success text-background"
-                          : "border-line bg-background"
-                      }`}
-                    >
-                      {task.done && <CheckCircle2 className="h-3 w-3" aria-hidden="true" />}
-                    </span>
-                    <span className={task.done ? "line-through opacity-70" : ""}>
-                      {task.label}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!collapsed && (
-            <div className="mb-3 rounded-2xl bg-success-soft p-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-success">
-                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                Secure checkout
-              </div>
-              <p className="mt-1 text-xs leading-relaxed text-success">
-                Stripe handles payment security while invoices keep your service brand visible.
-              </p>
-            </div>
+              )}
+            </Link>
           )}
 
           <div className="relative border-t border-line pt-3">
@@ -352,60 +335,47 @@ export function Sidebar() {
                     <span className="block truncate text-xs text-muted">{email ?? "Signed in"}</span>
                   </span>
                 </div>
-                <Link href="/settings" className="mt-2 flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm text-muted hover:bg-card hover:text-foreground">
-                  <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
-                  Account settings
-                </Link>
-                <Link href="/branding" className="flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm text-muted hover:bg-card hover:text-foreground">
-                  <Sparkles className="h-4 w-4" aria-hidden="true" />
-                  Branding
-                </Link>
-                <Link href="/payments" className="flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm text-muted hover:bg-card hover:text-foreground">
-                  <History className="h-4 w-4" aria-hidden="true" />
-                  Payment history
-                </Link>
-                <a href="mailto:support@idesignlc.com" className="flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm text-muted hover:bg-card hover:text-foreground">
-                  <LifeBuoy className="h-4 w-4" aria-hidden="true" />
-                  Support
-                </a>
-                <div className="my-2 h-px bg-line" />
-                <div className="flex items-center gap-2 rounded-xl bg-success-soft px-3 py-2 text-sm font-medium text-success">
-                  <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                  Stripe secure
-                </div>
-                <ClerkSignOutButton redirectUrl="/">
-                  <button className="mt-2 flex min-h-10 w-full items-center gap-3 rounded-xl px-3 text-left text-sm text-muted hover:bg-card hover:text-foreground">
-                    <LogOut className="h-4 w-4" aria-hidden="true" />
-                    Log out
-                  </button>
-                </ClerkSignOutButton>
+                {accountMenuLinks}
               </div>
             )}
           </div>
-
-          {!collapsed && (
-            <nav className="mt-2 flex items-center justify-between px-2 text-xs text-muted">
-              <Link href="/terms" className="hover:text-foreground">Terms</Link>
-              <Link href="/refunds" className="hover:text-foreground">Refunds</Link>
-              <a href="mailto:support@idesignlc.com" className="hover:text-foreground">Help</a>
-            </nav>
-          )}
-
-          {collapsed && (
-            <Link href="/terms" title="Help and terms" className="mx-auto mt-3 text-muted hover:text-foreground">
-              <CircleHelp className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          )}
         </div>
       </aside>
 
-      <Link
-        href="/invoices/new"
-        aria-label="Create new invoice"
-        className="fixed bottom-[4.55rem] left-1/2 z-30 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-2xl bg-accent text-accent-contrast shadow-[0_18px_34px_-18px_rgba(0,0,0,0.6)] md:hidden"
+      <button
+        type="button"
+        onClick={() => setAccountOpen((current) => !current)}
+        aria-expanded={accountOpen}
+        aria-label="Account menu"
+        className="fixed right-4 top-4 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-line bg-background font-display text-sm font-bold shadow-[0_10px_30px_-16px_rgba(0,0,0,0.5)] md:hidden"
       >
-        <Plus className="h-6 w-6" aria-hidden="true" />
-      </Link>
+        {initial}
+      </button>
+
+      {accountOpen && (
+        <div className="fixed inset-x-4 top-[4.25rem] z-40 rounded-2xl border border-line bg-background p-2 shadow-[0_24px_70px_-34px_rgba(0,0,0,0.55)] md:hidden">
+          <div className="flex items-center gap-3 border-b border-line p-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-card font-display text-sm font-bold">
+              {initial}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold">{displayName}</span>
+              <span className="block truncate text-xs text-muted">{email ?? "Signed in"}</span>
+            </span>
+          </div>
+          {accountMenuLinks}
+        </div>
+      )}
+
+      {pathname !== "/invoices/new" && pathname !== "/estimates/new" && (
+        <Link
+          href="/invoices/new"
+          aria-label="Create new invoice"
+          className="fixed bottom-[4.55rem] left-1/2 z-30 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-2xl bg-accent text-accent-contrast shadow-[0_18px_34px_-18px_rgba(0,0,0,0.6)] md:hidden"
+        >
+          <Plus className="h-6 w-6" aria-hidden="true" />
+        </Link>
+      )}
 
       <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-line bg-background/95 px-2 pb-safe pt-2 text-[10px] font-medium backdrop-blur md:hidden">
         {mobileItems.map((item) => {
