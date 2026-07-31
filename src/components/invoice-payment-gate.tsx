@@ -38,12 +38,20 @@ export function InvoicePaymentGate({
     window.location.assign(hostedInvoiceUrl);
   }
 
+  const disabledReason =
+    requiresTerms && !accepted ? "Check the box above to continue." : null;
+
   return (
     <div className="mt-6">
       {requiresTerms && (
         <div className="mb-4 rounded-2xl border border-line bg-background p-4">
           <p className="font-display text-base font-bold">Terms and conditions</p>
-          <div className="mt-3 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-xl bg-card p-3 text-sm leading-relaxed text-muted">
+          <div
+            tabIndex={0}
+            role="region"
+            aria-label="Terms and conditions"
+            className="mt-3 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-xl bg-card p-3 text-sm leading-relaxed text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+          >
             {terms}
           </div>
           <label className="mt-4 flex items-start gap-3 text-sm">
@@ -58,17 +66,27 @@ export function InvoicePaymentGate({
         </div>
       )}
 
-      {error && <p className="mb-3 text-sm text-danger">{error}</p>}
+      {error && (
+        <p role="alert" className="mb-3 text-sm text-danger">
+          {error}
+        </p>
+      )}
 
       <button
         type="button"
         onClick={continueToPayment}
         disabled={loading || (requiresTerms && !accepted)}
+        aria-describedby={disabledReason ? "pay-button-hint" : undefined}
         className="flex min-h-14 w-full items-center justify-center rounded-2xl font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-45"
         style={{ backgroundColor: brandColor }}
       >
         {loading ? "Opening secure payment..." : "Pay securely with Stripe"}
       </button>
+      {disabledReason && (
+        <p id="pay-button-hint" className="mt-2 text-center text-xs text-muted">
+          {disabledReason}
+        </p>
+      )}
     </div>
   );
 }

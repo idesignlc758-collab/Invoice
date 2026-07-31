@@ -10,7 +10,7 @@ const LAST_UPDATED = "28 July 2026";
 
 export default function TermsPage() {
   return (
-    <main className="flex-1 px-6 py-12">
+    <main id="main-content" tabIndex={-1} className="flex-1 px-6 py-12 focus:outline-none">
       <article className="mx-auto w-full max-w-2xl">
         <Link href="/" className="text-sm text-muted hover:text-foreground">
           ← Back

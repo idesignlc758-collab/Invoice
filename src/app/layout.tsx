@@ -43,7 +43,15 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className={`${body.variable} ${heading.variable} h-full antialiased`}>
-        <body className="min-h-full flex flex-col font-sans">{children}</body>
+        <body className="min-h-full flex flex-col font-sans">
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-accent focus:px-4 focus:py-3 focus:text-sm focus:font-bold focus:text-accent-contrast"
+          >
+            Skip to content
+          </a>
+          {children}
+        </body>
       </html>
     </ClerkProvider>
   );

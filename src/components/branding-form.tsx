@@ -141,7 +141,11 @@ function SavePanel({
 }) {
   return (
     <div className="space-y-3">
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      )}
       <div className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="font-medium">Ready to update your brand profile?</p>
@@ -449,12 +453,14 @@ export function BrandingForm({
               value={addressLine1}
               onChange={(event) => setAddressLine1(event.target.value)}
               placeholder="Street address"
+              aria-label="Street address"
               className={inputClass}
             />
             <input
               value={addressLine2}
               onChange={(event) => setAddressLine2(event.target.value)}
               placeholder="Apartment, suite, unit"
+              aria-label="Apartment, suite, or unit"
               className={inputClass}
             />
             <div className="grid gap-4 sm:grid-cols-3">
@@ -462,18 +468,21 @@ export function BrandingForm({
                 value={city}
                 onChange={(event) => setCity(event.target.value)}
                 placeholder="City"
+                aria-label="City"
                 className={inputClass}
               />
               <input
                 value={state}
                 onChange={(event) => setState(event.target.value)}
                 placeholder="State"
+                aria-label="State"
                 className={inputClass}
               />
               <input
                 value={postalCode}
                 onChange={(event) => setPostalCode(event.target.value)}
                 placeholder="ZIP"
+                aria-label="ZIP"
                 className={inputClass}
               />
             </div>
@@ -481,6 +490,7 @@ export function BrandingForm({
               value={country}
               onChange={(event) => setCountry(event.target.value)}
               placeholder="Country"
+              aria-label="Country"
               className={inputClass}
             />
           </div>
@@ -657,6 +667,8 @@ export function BrandingForm({
 
             <button
               type="button"
+              tabIndex={-1}
+              aria-hidden="true"
               className="mt-5 min-h-12 w-full rounded-2xl font-bold text-white"
               style={{ backgroundColor: brandColor }}
             >

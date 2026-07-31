@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored agent-skill docs/scripts (gitignored, not app code).
+    ".agents/**",
+    ".claude/**",
+    ".windsurf/**",
   ]),
 ]);
 

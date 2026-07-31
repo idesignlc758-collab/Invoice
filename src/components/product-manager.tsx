@@ -139,7 +139,11 @@ export function ProductManager({ products }: { products: Product[] }) {
               className="h-4 w-4 accent-[var(--accent)]"
             />
           </label>
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-danger">
+              {error}
+            </p>
+          )}
           <button
             type="submit"
             disabled={loading}
@@ -178,7 +182,7 @@ export function ProductManager({ products }: { products: Product[] }) {
                   <p className="font-display text-lg font-bold tabular-nums">
                     {formatCents(product.unitAmount, product.currency)}
                   </p>
-                  <label className="mt-2 flex items-center justify-end gap-2 text-xs font-medium text-muted">
+                  <label className="mt-2 flex min-h-11 items-center justify-end gap-2 text-xs font-medium text-muted">
                     <span>Apply tax</span>
                     <input
                       type="checkbox"
@@ -190,7 +194,7 @@ export function ProductManager({ products }: { products: Product[] }) {
                   <button
                     type="button"
                     onClick={() => setActive(product.id, false)}
-                    className="mt-2 text-xs font-medium text-muted hover:text-danger"
+                    className="flex min-h-11 items-center justify-end text-xs font-medium text-muted hover:text-danger"
                   >
                     Archive
                   </button>

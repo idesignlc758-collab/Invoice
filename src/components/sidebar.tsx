@@ -147,6 +147,7 @@ export function Sidebar() {
             <Link
               href="/dashboard"
               title="Business profile"
+              aria-label="Business profile"
               className={`flex min-w-0 items-center gap-3 rounded-2xl transition hover:bg-card ${
                 collapsed ? "h-11 w-11 justify-center" : "flex-1 p-2"
               }`}
@@ -182,6 +183,7 @@ export function Sidebar() {
           <Link
             href="/invoices/new"
             title="New invoice"
+            aria-label="New invoice"
             className={`mt-4 flex min-h-10 items-center justify-center gap-2 rounded-2xl bg-foreground text-sm font-bold text-background transition hover:opacity-90 ${
               collapsed ? "px-0" : "px-4"
             }`}
@@ -219,6 +221,7 @@ export function Sidebar() {
                         key={item.href}
                         href={item.href}
                         title={item.label}
+                        aria-label={item.label}
                         className={`group relative flex min-h-10 items-center gap-3 rounded-2xl font-medium transition ${
                           active
                             ? "bg-card text-foreground shadow-[inset_0_0_0_1px_var(--line)]"
@@ -244,6 +247,7 @@ export function Sidebar() {
               target="_blank"
               rel="noopener noreferrer"
               title="Stripe Dashboard"
+              aria-label="Stripe Dashboard"
               className={`group relative flex min-h-10 items-center gap-3 rounded-2xl font-medium text-muted transition hover:bg-card hover:text-foreground ${
                 collapsed ? "justify-center px-0" : "px-3"
               }`}

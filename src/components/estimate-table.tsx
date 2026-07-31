@@ -57,6 +57,7 @@ export function EstimateTable({ estimates }: { estimates: Estimate[] }) {
             <button
               key={item.key}
               type="button"
+              aria-pressed={filter === item.key}
               onClick={() => setFilter(item.key)}
               className={`rounded-full px-3.5 py-1.5 text-sm font-medium ${
                 filter === item.key ? "bg-accent text-accent-contrast" : "text-muted"
@@ -68,6 +69,7 @@ export function EstimateTable({ estimates }: { estimates: Estimate[] }) {
         </div>
         <input
           type="search"
+          aria-label="Search estimates"
           placeholder="Search client or scope..."
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -84,49 +86,83 @@ export function EstimateTable({ estimates }: { estimates: Estimate[] }) {
           </p>
         )}
         {filtered.length > 0 && (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-5 py-3 font-medium">Client</th>
-                <th className="px-5 py-3 font-medium">Scope</th>
-                <th className="px-5 py-3 font-medium">Expires</th>
-                <th className="px-5 py-3 text-right font-medium">Amount</th>
-                <th className="px-5 py-3 text-right font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Stacked rows below md: a 5-column table has no room on a
+                phone, and the app's own pitch is "invoice from your phone". */}
+            <div className="md:hidden">
               {filtered.map((estimate) => (
-                <tr
+                <Link
                   key={estimate.id}
-                  onClick={() => router.push(`/estimates/${estimate.id}`)}
-                  className="cursor-pointer border-b border-line last:border-0 hover:bg-line/30"
+                  href={`/estimates/${estimate.id}`}
+                  className="flex items-center gap-3 border-b border-line p-4 last:border-0 hover:bg-line/30"
                 >
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-line bg-background font-display text-xs font-bold">
-                        {initials(estimate.clientName, estimate.clientEmail)}
-                      </span>
-                      <Link
-                        href={`/estimates/${estimate.id}`}
-                        className="truncate hover:underline"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {estimate.clientName || estimate.clientEmail}
-                      </Link>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3 text-muted">{estimate.description}</td>
-                  <td className="px-5 py-3 text-muted">{formatDate(estimate.expiresAt)}</td>
-                  <td className="px-5 py-3 text-right font-display font-bold tabular-nums">
-                    {formatCents(estimate.amount, estimate.currency)}
-                  </td>
-                  <td className="px-5 py-3 text-right">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-background font-display text-xs font-bold">
+                    {initials(estimate.clientName, estimate.clientEmail)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">
+                      {estimate.clientName || estimate.clientEmail}
+                    </p>
+                    <p className="truncate text-sm text-muted">
+                      {estimate.description} · {formatDate(estimate.expiresAt)}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <span className="font-display font-bold tabular-nums">
+                      {formatCents(estimate.amount, estimate.currency)}
+                    </span>
                     <StatusPill status={estimate.status} />
-                  </td>
-                </tr>
+                  </div>
+                </Link>
               ))}
-            </tbody>
-          </table>
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+                    <th className="px-5 py-3 font-medium">Client</th>
+                    <th className="px-5 py-3 font-medium">Scope</th>
+                    <th className="px-5 py-3 font-medium">Expires</th>
+                    <th className="px-5 py-3 text-right font-medium">Amount</th>
+                    <th className="px-5 py-3 text-right font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((estimate) => (
+                    <tr
+                      key={estimate.id}
+                      onClick={() => router.push(`/estimates/${estimate.id}`)}
+                      className="cursor-pointer border-b border-line last:border-0 hover:bg-line/30"
+                    >
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-line bg-background font-display text-xs font-bold">
+                            {initials(estimate.clientName, estimate.clientEmail)}
+                          </span>
+                          <Link
+                            href={`/estimates/${estimate.id}`}
+                            className="truncate hover:underline"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            {estimate.clientName || estimate.clientEmail}
+                          </Link>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-muted">{estimate.description}</td>
+                      <td className="px-5 py-3 text-muted">{formatDate(estimate.expiresAt)}</td>
+                      <td className="px-5 py-3 text-right font-display font-bold tabular-nums">
+                        {formatCents(estimate.amount, estimate.currency)}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <StatusPill status={estimate.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

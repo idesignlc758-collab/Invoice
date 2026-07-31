@@ -301,7 +301,7 @@ export function NewEstimateFlow({
                       className="w-full rounded-xl border border-line bg-card px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent"
                     />
                     <div className="mt-2 flex flex-wrap gap-4">
-                      <label className="flex items-center gap-2 text-sm text-muted">
+                      <label className="flex min-h-11 items-center gap-2 text-sm text-muted">
                         <input
                           type="checkbox"
                           checked={item.taxable}
@@ -311,7 +311,7 @@ export function NewEstimateFlow({
                         Apply tax
                       </label>
                       {!item.productId && item.description.trim().length > 0 && item.unitCents > 0 && (
-                        <label className="flex items-center gap-2 text-sm text-muted">
+                        <label className="flex min-h-11 items-center gap-2 text-sm text-muted">
                           <input
                             type="checkbox"
                             checked={item.saveProduct}
@@ -329,6 +329,7 @@ export function NewEstimateFlow({
                     type="number"
                     inputMode="numeric"
                     min="1"
+                    aria-label="Quantity"
                     value={item.quantity}
                     onChange={(event) =>
                       updateItem(item.id, {
@@ -345,6 +346,7 @@ export function NewEstimateFlow({
                       min="0"
                       step="0.01"
                       placeholder="0.00"
+                      aria-label="Amount"
                       value={item.unitCents === 0 ? "" : (item.unitCents / 100).toString()}
                       onChange={(event) =>
                         updateItem(item.id, {
@@ -387,7 +389,7 @@ export function NewEstimateFlow({
                   key={preset.days}
                   type="button"
                   onClick={() => setExpiresInDays(preset.days)}
-                  className={`rounded-full border px-4 py-2 text-sm font-medium ${
+                  className={`min-h-11 rounded-full border px-4 text-sm font-medium ${
                     expiresInDays === preset.days
                       ? "border-accent bg-accent text-accent-contrast"
                       : "border-line bg-card text-foreground"
@@ -522,7 +524,11 @@ export function NewEstimateFlow({
             </div>
           </div>
 
-          {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+          {error && (
+            <p role="alert" className="mt-4 text-sm text-danger">
+              {error}
+            </p>
+          )}
 
           <button
             type="button"

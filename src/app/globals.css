@@ -58,13 +58,17 @@
   --muted: #a3a3a3;
   --card: #1c1c1c;
   --line: #2e2e2e;
-  --accent: #e5423a;
+  /* Matches the @media(prefers-color-scheme: dark) values above — the
+     previous #e5423a/#c24a3f pair fell below 4.5:1 against white text and
+     against --danger-soft, failing WCAG AA specifically for people who use
+     the in-app dark-mode toggle rather than an OS dark preference. */
+  --accent: #d33d35;
   --accent-contrast: #ffffff;
   --success: #3fcb86;
   --success-soft: #163524;
   --pending: #e3a748;
   --pending-soft: #3a2c14;
-  --danger: #c24a3f;
+  --danger: #d1776f;
   --danger-soft: #3a211d;
 }
 
@@ -125,6 +129,49 @@ body {
 ::selection {
   background: var(--accent);
   color: var(--accent-contrast);
+}
+
+/* Landing hero: the invoice card reads as torn from a perforated pad.
+   Opaque circles cut through a --line strip at the card's top edge. */
+.perforated-top {
+  height: 14px;
+  background-color: var(--line);
+  background-image: radial-gradient(circle at 8px 7px, var(--background) 6px, transparent 6.5px);
+  background-size: 16px 14px;
+  background-repeat: repeat-x;
+  border-radius: 0.85rem 0.85rem 0 0;
+}
+
+/* The single orchestrated moment on the landing page: an ink stamp
+   pressing onto the hero invoice once on load. */
+@keyframes stamp-press {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-24deg) scale(2.1);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(-8deg) scale(0.94);
+  }
+  75% {
+    transform: translate(-50%, -50%) rotate(-11deg) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(-10deg) scale(1);
+  }
+}
+
+.stamp-mark {
+  animation: stamp-press 0.65s cubic-bezier(0.25, 0.9, 0.3, 1.15) 0.55s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-mark {
+    animation: none;
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(-10deg) scale(1);
+  }
 }
 
 input[type="number"]::-webkit-outer-spin-button,

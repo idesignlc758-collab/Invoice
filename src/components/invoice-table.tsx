@@ -54,6 +54,7 @@ export function InvoiceTable({ invoices }: { invoices: Invoice[] }) {
             <button
               key={f.key}
               type="button"
+              aria-pressed={filter === f.key}
               onClick={() => setFilter(f.key)}
               className={`rounded-full px-3.5 py-1.5 text-sm font-medium ${
                 filter === f.key ? "bg-accent text-accent-contrast" : "text-muted"
@@ -65,6 +66,7 @@ export function InvoiceTable({ invoices }: { invoices: Invoice[] }) {
         </div>
         <input
           type="search"
+          aria-label="Search invoices"
           placeholder="Search client or job…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -81,49 +83,83 @@ export function InvoiceTable({ invoices }: { invoices: Invoice[] }) {
           </p>
         )}
         {filtered.length > 0 && (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                <th className="font-medium px-5 py-3">Client</th>
-                <th className="font-medium px-5 py-3">Job</th>
-                <th className="font-medium px-5 py-3">Sent</th>
-                <th className="font-medium px-5 py-3 text-right">Amount</th>
-                <th className="font-medium px-5 py-3 text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Stacked rows below md: a 5-column table has no room on a
+                phone, and the app's own pitch is "invoice from your phone". */}
+            <div className="md:hidden">
               {filtered.map((invoice) => (
-                <tr
+                <Link
                   key={invoice.id}
-                  onClick={() => router.push(`/invoices/${invoice.id}`)}
-                  className="cursor-pointer border-b border-line last:border-0 hover:bg-line/30"
+                  href={`/invoices/${invoice.id}`}
+                  className="flex items-center gap-3 border-b border-line p-4 last:border-0 hover:bg-line/30"
                 >
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-8 h-8 flex-shrink-0 rounded-full bg-background border border-line flex items-center justify-center font-display font-bold text-xs">
-                        {initials(invoice.clientName, invoice.clientEmail)}
-                      </span>
-                      <Link
-                        href={`/invoices/${invoice.id}`}
-                        className="truncate hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {invoice.clientName || invoice.clientEmail}
-                      </Link>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3 text-muted">{invoice.description}</td>
-                  <td className="px-5 py-3 text-muted">{formatDate(invoice.createdAt)}</td>
-                  <td className="px-5 py-3 text-right font-display font-bold tabular-nums">
-                    {formatCents(invoice.amount, invoice.currency)}
-                  </td>
-                  <td className="px-5 py-3 text-right">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-background font-display text-xs font-bold">
+                    {initials(invoice.clientName, invoice.clientEmail)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">
+                      {invoice.clientName || invoice.clientEmail}
+                    </p>
+                    <p className="truncate text-sm text-muted">
+                      {invoice.description} · {formatDate(invoice.createdAt)}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <span className="font-display font-bold tabular-nums">
+                      {formatCents(invoice.amount, invoice.currency)}
+                    </span>
                     <StatusPill status={invoice.status} />
-                  </td>
-                </tr>
+                  </div>
+                </Link>
               ))}
-            </tbody>
-          </table>
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+                    <th className="font-medium px-5 py-3">Client</th>
+                    <th className="font-medium px-5 py-3">Job</th>
+                    <th className="font-medium px-5 py-3">Sent</th>
+                    <th className="font-medium px-5 py-3 text-right">Amount</th>
+                    <th className="font-medium px-5 py-3 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((invoice) => (
+                    <tr
+                      key={invoice.id}
+                      onClick={() => router.push(`/invoices/${invoice.id}`)}
+                      className="cursor-pointer border-b border-line last:border-0 hover:bg-line/30"
+                    >
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-8 h-8 flex-shrink-0 rounded-full bg-background border border-line flex items-center justify-center font-display font-bold text-xs">
+                            {initials(invoice.clientName, invoice.clientEmail)}
+                          </span>
+                          <Link
+                            href={`/invoices/${invoice.id}`}
+                            className="truncate hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {invoice.clientName || invoice.clientEmail}
+                          </Link>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-muted">{invoice.description}</td>
+                      <td className="px-5 py-3 text-muted">{formatDate(invoice.createdAt)}</td>
+                      <td className="px-5 py-3 text-right font-display font-bold tabular-nums">
+                        {formatCents(invoice.amount, invoice.currency)}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <StatusPill status={invoice.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

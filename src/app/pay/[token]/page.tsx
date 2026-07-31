@@ -49,7 +49,11 @@ export default async function PublicInvoicePage({
   const address = compactAddress(invoice);
 
   return (
-    <main className="min-h-screen bg-background px-5 py-6 text-foreground md:py-10">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="min-h-screen bg-background px-5 py-6 text-foreground focus:outline-none md:py-10"
+    >
       <section className="mx-auto flex w-full max-w-2xl flex-col gap-5">
         <div className="rounded-[1.75rem] border border-line bg-card p-5 shadow-[0_18px_60px_-42px_rgba(0,0,0,0.55)] md:p-7">
           <div className="flex items-center justify-between gap-3">
@@ -70,7 +74,7 @@ export default async function PublicInvoicePage({
                 </span>
               )}
               <div className="min-w-0">
-                <p className="truncate font-display text-xl font-extrabold">{businessName}</p>
+                <h1 className="truncate font-display text-xl font-extrabold">{businessName}</h1>
                 <p className="truncate text-sm text-muted">{invoice.brandSupportEmail}</p>
                 {address.length > 0 && (
                   <p className="mt-1 line-clamp-2 text-xs text-muted">{address.join(" - ")}</p>
@@ -81,7 +85,7 @@ export default async function PublicInvoicePage({
           </div>
 
           <div className="mt-9">
-            <p className="text-sm text-muted">Invoice total</p>
+            <h2 className="text-sm text-muted">Invoice total</h2>
             <p className="mt-1 font-display text-5xl font-extrabold tracking-tight tabular-nums md:text-6xl">
               {formatCents(invoice.amount, invoice.currency)}
             </p>
@@ -93,7 +97,7 @@ export default async function PublicInvoicePage({
 
           <div className="mt-7 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-line bg-background p-4">
-              <p className="text-xs uppercase tracking-wide text-muted">Service provider</p>
+              <h3 className="text-xs uppercase tracking-wide text-muted">Service provider</h3>
               <p className="mt-2 font-medium">{businessName}</p>
               {address.map((line) => (
                 <p key={line} className="text-sm text-muted">
@@ -102,7 +106,7 @@ export default async function PublicInvoicePage({
               ))}
             </div>
             <div className="rounded-2xl border border-line bg-background p-4">
-              <p className="text-xs uppercase tracking-wide text-muted">Invoice details</p>
+              <h3 className="text-xs uppercase tracking-wide text-muted">Invoice details</h3>
               <div className="mt-2 flex justify-between gap-4 text-sm">
                 <span className="text-muted">Due</span>
                 <span>{formatDate(invoice.dueDate)}</span>
@@ -117,7 +121,7 @@ export default async function PublicInvoicePage({
           </div>
 
           <div className="mt-4 rounded-3xl border border-line bg-background p-4">
-            <p className="mb-3 text-xs uppercase tracking-wide text-muted">Items</p>
+            <h2 className="mb-3 text-xs uppercase tracking-wide text-muted">Items</h2>
             <div className="flex flex-col gap-3">
               {invoice.lineItems.map((item) => (
                 <div key={item.id} className="flex justify-between gap-4 text-sm">

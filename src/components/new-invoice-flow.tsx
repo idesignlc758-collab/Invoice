@@ -409,7 +409,7 @@ export function NewInvoiceFlow({
             key={preset.days}
             type="button"
             onClick={() => setDueInDays(preset.days)}
-            className={`rounded-full border px-4 py-2 text-sm font-medium ${
+            className={`min-h-11 rounded-full border px-4 text-sm font-medium ${
               dueInDays === preset.days
                 ? "border-accent bg-accent text-accent-contrast"
                 : "border-line bg-card text-foreground"
@@ -611,7 +611,7 @@ export function NewInvoiceFlow({
                 </label>
               </div>
               {!item.productId && item.description.trim().length > 0 && item.unitCents > 0 && (
-                <label className="flex items-center justify-between gap-3 rounded-xl bg-line/35 px-3 py-2 text-sm">
+                <label className="flex min-h-11 items-center justify-between gap-3 rounded-xl bg-line/35 px-3 text-sm">
                   <span>Save as product for next time</span>
                   <input
                     type="checkbox"
@@ -621,7 +621,7 @@ export function NewInvoiceFlow({
                   />
                 </label>
               )}
-              <label className="flex items-center justify-between gap-3 rounded-xl bg-line/35 px-3 py-2 text-sm">
+              <label className="flex min-h-11 items-center justify-between gap-3 rounded-xl bg-line/35 px-3 text-sm">
                 <span>Apply tax to this item</span>
                 <input
                   type="checkbox"
@@ -681,7 +681,7 @@ export function NewInvoiceFlow({
                   className="w-full rounded-xl border border-line bg-card px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <div className="mt-2 flex flex-wrap gap-4">
-                  <label className="flex items-center gap-2 text-sm text-muted">
+                  <label className="flex min-h-11 items-center gap-2 text-sm text-muted">
                     <input
                       type="checkbox"
                       checked={item.taxable}
@@ -691,7 +691,7 @@ export function NewInvoiceFlow({
                     Apply tax
                   </label>
                   {!item.productId && item.description.trim().length > 0 && item.unitCents > 0 && (
-                    <label className="flex items-center gap-2 text-sm text-muted">
+                    <label className="flex min-h-11 items-center gap-2 text-sm text-muted">
                       <input
                         type="checkbox"
                         checked={item.saveProduct}
@@ -707,6 +707,7 @@ export function NewInvoiceFlow({
                 type="number"
                 inputMode="numeric"
                 min="1"
+                aria-label="Quantity"
                 value={item.quantity}
                 onChange={(e) =>
                   updateItem(item.id, {
@@ -723,6 +724,7 @@ export function NewInvoiceFlow({
                   min="0"
                   step="0.01"
                   placeholder="0.00"
+                  aria-label="Amount"
                   value={item.unitCents === 0 ? "" : (item.unitCents / 100).toString()}
                   onChange={(e) =>
                     updateItem(item.id, {
@@ -838,7 +840,10 @@ export function NewInvoiceFlow({
             </div>
             {stepProgress}
             <div className="flex flex-1 flex-col items-center justify-center gap-6">
-              <p className="font-display text-6xl font-extrabold tracking-tight tabular-nums">
+              <p
+                aria-live="polite"
+                className="font-display text-6xl font-extrabold tracking-tight tabular-nums"
+              >
                 {formatCents(mobileAmountCents)}
               </p>
               {quickAmountChips}
@@ -955,7 +960,11 @@ export function NewInvoiceFlow({
               <div className="border-t border-line pt-1">{totalsRows}</div>
             </div>
             <div className="mb-6 rounded-2xl border border-line bg-card p-4">{emailCopyFields}</div>
-            {error && <p className="mb-4 text-sm text-danger">{error}</p>}
+            {error && (
+              <p role="alert" className="mb-4 text-sm text-danger">
+                {error}
+              </p>
+            )}
             <div className="flex-1" />
             <button
               type="button"
@@ -1080,7 +1089,11 @@ export function NewInvoiceFlow({
                   <div className="mt-5 rounded-2xl border border-line bg-background p-5">
                     {totalsRows}
                   </div>
-                  {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+                  {error && (
+                    <p role="alert" className="mt-4 text-sm text-danger">
+                      {error}
+                    </p>
+                  )}
                   <button
                     type="button"
                     disabled={!canSend || loading}
@@ -1225,7 +1238,11 @@ export function NewInvoiceFlow({
                     {totalsRows}
                   </div>
 
-                  {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+                  {error && (
+                    <p role="alert" className="mt-4 text-sm text-danger">
+                      {error}
+                    </p>
+                  )}
 
                   <button
                     type="button"
