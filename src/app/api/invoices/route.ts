@@ -61,15 +61,16 @@ function formatAddress(profile: {
     .join(" - ");
 }
 
-function parseEmailCopies(value: unknown, label: string) {
+function parseEmailCopies(value: unknown, label: string, exclude: string[] = []) {
   const rawValues = Array.isArray(value)
     ? value.map((entry) => String(entry))
     : String(value ?? "")
         .split(/[\s,;]+/)
         .filter(Boolean);
+  const excludeSet = new Set(exclude.map((email) => email.toLowerCase()));
   const uniqueEmails = Array.from(
     new Set(rawValues.map((entry) => entry.trim().toLowerCase()).filter(Boolean))
-  );
+  ).filter((email) => !excludeSet.has(email));
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if (uniqueEmails.length > 20) {
@@ -100,8 +101,11 @@ export async function POST(request: Request) {
   const clientNote = String(body.clientNote ?? "").trim().slice(0, 1000) || null;
   const privateMemo = String(body.privateMemo ?? "").trim().slice(0, 1000) || null;
   const clientTerms = String(body.clientTerms ?? "").trim().slice(0, 4000) || null;
-  const parsedCcEmails = parseEmailCopies(body.ccEmails, "CC");
-  const parsedBccEmails = parseEmailCopies(body.bccEmails, "BCC");
+  const parsedCcEmails = parseEmailCopies(body.ccEmails, "CC", [normalizedClientEmail]);
+  const parsedBccEmails = parseEmailCopies(body.bccEmails, "BCC", [
+    normalizedClientEmail,
+    ...parsedCcEmails.emails,
+  ]);
   const items = parseLineItems(body.items);
   const deliveryMode = body.deliveryMode === "stripe_email" ? "stripe_email" : "branded_email";
   const estimateId = body.estimateId ? String(body.estimateId) : null;
@@ -125,6 +129,15 @@ export async function POST(request: Request) {
   if (parsedCcEmails.error || parsedBccEmails.error) {
     return NextResponse.json(
       { error: parsedCcEmails.error ?? parsedBccEmails.error },
+      { status: 400 }
+    );
+  }
+  if (
+    deliveryMode !== "branded_email" &&
+    (parsedCcEmails.emails.length > 0 || parsedBccEmails.emails.length > 0)
+  ) {
+    return NextResponse.json(
+      { error: "CC and BCC recipients require branded email delivery." },
       { status: 400 }
     );
   }
