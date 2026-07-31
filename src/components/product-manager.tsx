@@ -71,7 +71,7 @@ export function ProductManager({ products }: { products: Product[] }) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-      <form onSubmit={createProduct} className="rounded-3xl border border-line bg-card p-5 md:p-6">
+      <form onSubmit={createProduct} className="rounded-2xl border border-line bg-card p-5 md:p-6">
         <h2 className="font-display text-xl font-bold">Add product or service</h2>
         <p className="mt-1 text-sm text-muted">
           Save repeat work here, or save new items directly while creating an invoice.
@@ -154,7 +154,7 @@ export function ProductManager({ products }: { products: Product[] }) {
         </div>
       </form>
 
-      <section className="rounded-3xl border border-line bg-card p-4 md:p-5">
+      <section className="rounded-2xl border border-line bg-card p-4 md:p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-xl font-bold">Catalog</h2>
           <span className="text-sm text-muted">{products.length} active</span>

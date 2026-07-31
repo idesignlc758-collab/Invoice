@@ -24,6 +24,9 @@ const mono = IBM_Plex_Mono({
   weight: ["500", "600"],
 });
 
+const fontDisplay = "font-[family-name:var(--font-landing-display)]";
+const fontMono = "font-[family-name:var(--font-landing-mono)]";
+
 const proof = [
   "Branded, white-label invoices",
   "Stripe-secured checkout",
@@ -75,8 +78,7 @@ function InvoiceArtifact() {
         <div className="perforated-top" aria-hidden="true" />
         <div className="relative overflow-hidden rounded-b-2xl border border-t-0 border-line bg-card p-6 shadow-[0_30px_90px_-45px_rgba(0,0,0,0.5)]">
           <div
-            className="flex items-center justify-between text-[11px] uppercase tracking-[0.16em] text-muted"
-            style={{ fontFamily: "var(--font-landing-mono)" }}
+            className={`flex items-center justify-between text-[11px] uppercase tracking-[0.16em] text-muted ${fontMono}`}
           >
             <span>Invoice</span>
             <span>No. 1042</span>
@@ -85,12 +87,7 @@ function InvoiceArtifact() {
           <div className="mt-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs text-muted">To</p>
-              <p
-                className="truncate text-lg font-bold"
-                style={{ fontFamily: "var(--font-landing-display)" }}
-              >
-                Rivera Cleaning
-              </p>
+              <p className={`truncate text-lg font-bold ${fontDisplay}`}>Rivera Cleaning</p>
             </div>
             <span className="shrink-0 rounded-full bg-pending-soft px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-pending">
               Open
@@ -98,8 +95,7 @@ function InvoiceArtifact() {
           </div>
 
           <div
-            className="mt-5 space-y-2.5 border-y border-dashed border-line py-4 text-xs"
-            style={{ fontFamily: "var(--font-landing-mono)" }}
+            className={`mt-5 space-y-2.5 border-y border-dashed border-line py-4 text-xs ${fontMono}`}
           >
             {invoiceItems.map((item) => (
               <div key={item.label} className="flex items-center justify-between gap-3">
@@ -111,12 +107,7 @@ function InvoiceArtifact() {
 
           <div className="mt-4 flex items-end justify-between">
             <span className="text-xs text-muted">Total due</span>
-            <span
-              className="text-4xl font-bold tabular-nums"
-              style={{ fontFamily: "var(--font-landing-display)" }}
-            >
-              $685.00
-            </span>
+            <span className={`text-4xl font-bold tabular-nums ${fontDisplay}`}>$685.00</span>
           </div>
         </div>
 
@@ -125,8 +116,7 @@ function InvoiceArtifact() {
           className="stamp-mark pointer-events-none absolute left-[54%] top-full select-none"
         >
           <div
-            className="rounded-full border-[3px] border-accent px-4 py-2 text-sm font-bold uppercase tracking-[0.22em] text-accent"
-            style={{ fontFamily: "var(--font-landing-mono)" }}
+            className={`rounded-full border-[3px] border-accent px-4 py-2 text-sm font-bold uppercase tracking-[0.22em] text-accent ${fontMono}`}
           >
             Paid
           </div>
@@ -158,15 +148,10 @@ export default async function HomePage() {
       <ThesisNote />
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 md:px-8">
         <Link href="/" className="flex items-center gap-2" aria-label="Invoice homepage">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground text-background">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-accent-contrast">
             <Receipt className="h-5 w-5" aria-hidden="true" />
           </span>
-          <span
-            className="text-lg font-bold tracking-tight"
-            style={{ fontFamily: "var(--font-landing-display)" }}
-          >
-            Invoice
-          </span>
+          <span className={`text-lg font-bold tracking-tight ${fontDisplay}`}>Invoice</span>
         </Link>
         <div className="flex items-center gap-2">
           <Link
@@ -192,8 +177,7 @@ export default async function HomePage() {
               Secure invoice payments powered by Stripe
             </p>
             <h1
-              className="mt-6 max-w-4xl text-balance text-[3.15rem] font-bold leading-[0.98] tracking-tight md:text-7xl"
-              style={{ fontFamily: "var(--font-landing-display)" }}
+              className={`mt-6 max-w-4xl text-balance text-[3.15rem] font-bold leading-[0.98] tracking-tight md:text-7xl ${fontDisplay}`}
             >
               Send the invoice.
               <br />
@@ -237,10 +221,7 @@ export default async function HomePage() {
         <section id="anatomy" className="mx-auto w-full max-w-7xl px-5 py-14 md:px-8 md:py-20">
           <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
             <div>
-              <h2
-                className="text-3xl font-bold tracking-tight md:text-5xl"
-                style={{ fontFamily: "var(--font-landing-display)" }}
-              >
+              <h2 className={`text-3xl font-bold tracking-tight md:text-5xl ${fontDisplay}`}>
                 One document.
                 <br />
                 Four jobs handled.
@@ -258,18 +239,12 @@ export default async function HomePage() {
                     <div className="flex items-center gap-2">
                       <Icon className="h-4 w-4 text-accent" aria-hidden="true" />
                       <span
-                        className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted"
-                        style={{ fontFamily: "var(--font-landing-mono)" }}
+                        className={`text-[11px] font-semibold uppercase tracking-[0.16em] text-muted ${fontMono}`}
                       >
                         {item.field}
                       </span>
                     </div>
-                    <h3
-                      className="mt-3 text-lg font-bold"
-                      style={{ fontFamily: "var(--font-landing-display)" }}
-                    >
-                      {item.title}
-                    </h3>
+                    <h3 className={`mt-3 text-lg font-bold ${fontDisplay}`}>{item.title}</h3>
                     <p className="mt-2 text-sm leading-relaxed text-muted">{item.body}</p>
                   </article>
                 );
@@ -279,23 +254,19 @@ export default async function HomePage() {
         </section>
 
         <section className="mx-auto w-full max-w-7xl px-5 pb-16 md:px-8 md:pb-24">
-          <div className="grid gap-3 rounded-[1.5rem] bg-[#151515] p-4 text-white md:grid-cols-[1fr_auto] md:items-center md:p-6">
+          <div className="grid gap-3 rounded-[1.5rem] bg-foreground p-4 text-background md:grid-cols-[1fr_auto] md:items-center md:p-6">
             <div>
               <p
-                className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60"
-                style={{ fontFamily: "var(--font-landing-mono)" }}
+                className={`text-[11px] font-semibold uppercase tracking-[0.16em] text-background/60 ${fontMono}`}
               >
                 Simple pricing
               </p>
-              <h2
-                className="mt-2 text-3xl font-bold tracking-tight md:text-5xl"
-                style={{ fontFamily: "var(--font-landing-display)" }}
-              >
+              <h2 className={`mt-2 text-3xl font-bold tracking-tight md:text-5xl ${fontDisplay}`}>
                 5% per paid invoice.
                 <br />
                 Nothing else.
               </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65">
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-background/65">
                 No monthly fee, no setup cost. If an invoice never gets paid, you never pay us
                 either.
               </p>

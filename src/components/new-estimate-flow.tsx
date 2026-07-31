@@ -199,7 +199,7 @@ export function NewEstimateFlow({
           {recentClients.length > 0 && (
             <div>
               <p className="mb-2 text-xs uppercase tracking-wide text-muted">Recent clients</p>
-              <div className="flex gap-3 overflow-x-auto pb-1">
+              <div className="flex gap-3 overflow-x-auto pb-1 scroll-fade-x">
                 {recentClients.map((client) => (
                   <button
                     key={client.clientEmail}
@@ -224,7 +224,7 @@ export function NewEstimateFlow({
           {products.length > 0 && (
             <div>
               <p className="mb-2 text-xs uppercase tracking-wide text-muted">Products and services</p>
-              <div className="flex gap-3 overflow-x-auto pb-1">
+              <div className="flex gap-3 overflow-x-auto pb-1 scroll-fade-x">
                 {products.slice(0, 8).map((product) => (
                   <button
                     key={product.id}

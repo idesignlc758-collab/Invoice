@@ -42,7 +42,10 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" className={`${body.variable} ${heading.variable} h-full antialiased`}>
+      <html
+        lang="en"
+        className={`${body.variable} ${heading.variable} h-full scroll-smooth antialiased`}
+      >
         <body className="min-h-full flex flex-col font-sans">
           <a
             href="#main-content"

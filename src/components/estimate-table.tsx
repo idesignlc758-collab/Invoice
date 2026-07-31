@@ -21,9 +21,12 @@ type Estimate = {
 const FILTERS = [
   { key: "all", label: "All" },
   { key: "sent", label: "Sent" },
+  { key: "viewed", label: "Viewed" },
   { key: "accepted", label: "Accepted" },
   { key: "converted", label: "Converted" },
   { key: "declined", label: "Declined" },
+  { key: "expired", label: "Expired" },
+  { key: "canceled", label: "Canceled" },
 ] as const;
 
 function formatDate(date: Date | null) {
@@ -52,14 +55,14 @@ export function EstimateTable({ estimates }: { estimates: Estimate[] }) {
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex gap-1 rounded-full border border-line p-1">
+        <div className="flex gap-1 overflow-x-auto rounded-full border border-line p-1">
           {FILTERS.map((item) => (
             <button
               key={item.key}
               type="button"
               aria-pressed={filter === item.key}
               onClick={() => setFilter(item.key)}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-medium ${
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium ${
                 filter === item.key ? "bg-accent text-accent-contrast" : "text-muted"
               }`}
             >

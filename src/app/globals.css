@@ -131,6 +131,20 @@ body {
   color: var(--accent-contrast);
 }
 
+/* Soft edge fade on horizontally-scrolling chip rows (quick amounts,
+   recent clients, saved products), so a partially visible chip reads as
+   "more to scroll" instead of clipped/broken content. */
+.scroll-fade-x {
+  mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 16px,
+    black calc(100% - 16px),
+    transparent
+  );
+}
+
 /* Landing hero: the invoice card reads as torn from a perforated pad.
    Opaque circles cut through a --line strip at the card's top edge. */
 .perforated-top {
@@ -171,6 +185,10 @@ body {
     animation: none;
     opacity: 1;
     transform: translate(-50%, -50%) rotate(-10deg) scale(1);
+  }
+
+  html {
+    scroll-behavior: auto;
   }
 }
 

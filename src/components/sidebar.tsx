@@ -16,6 +16,7 @@ import {
   LifeBuoy,
   LogOut,
   Plus,
+  Settings,
   ShieldCheck,
   Sparkles,
   WalletCards,
@@ -50,6 +51,7 @@ const mobileItems = [
   { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/products", label: "Products", icon: Boxes },
   { href: "/payments", label: "Payments", icon: CreditCard },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 type SetupTask = {
@@ -342,31 +344,6 @@ export function Sidebar() {
         </div>
       </aside>
 
-      <button
-        type="button"
-        onClick={() => setAccountOpen((current) => !current)}
-        aria-expanded={accountOpen}
-        aria-label="Account menu"
-        className="fixed right-4 top-4 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-line bg-background font-display text-sm font-bold shadow-[0_10px_30px_-16px_rgba(0,0,0,0.5)] md:hidden"
-      >
-        {initial}
-      </button>
-
-      {accountOpen && (
-        <div className="fixed inset-x-4 top-[4.25rem] z-40 rounded-2xl border border-line bg-background p-2 shadow-[0_24px_70px_-34px_rgba(0,0,0,0.55)] md:hidden">
-          <div className="flex items-center gap-3 border-b border-line p-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-card font-display text-sm font-bold">
-              {initial}
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold">{displayName}</span>
-              <span className="block truncate text-xs text-muted">{email ?? "Signed in"}</span>
-            </span>
-          </div>
-          {accountMenuLinks}
-        </div>
-      )}
-
       {pathname !== "/invoices/new" && pathname !== "/estimates/new" && (
         <Link
           href="/invoices/new"
@@ -377,7 +354,7 @@ export function Sidebar() {
         </Link>
       )}
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-line bg-background/95 px-2 pb-safe pt-2 text-[10px] font-medium backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-6 border-t border-line bg-background/95 px-1 pb-safe pt-2 text-[9px] font-medium backdrop-blur md:hidden">
         {mobileItems.map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = item.icon;

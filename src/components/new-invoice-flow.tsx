@@ -297,7 +297,7 @@ export function NewInvoiceFlow({
   );
 
   const quickAmountChips = (
-    <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+    <div className="mb-4 flex gap-2 overflow-x-auto pb-1 scroll-fade-x">
       {QUICK_AMOUNTS.map((amount) => (
         <button
           key={amount}
@@ -318,7 +318,7 @@ export function NewInvoiceFlow({
   const recentClientChips = recentClients.length > 0 && (
     <div className="mb-4">
       <p className="mb-2 text-xs uppercase tracking-wide text-muted">Send again to</p>
-      <div className="flex gap-3 overflow-x-auto pb-1">
+      <div className="flex gap-3 overflow-x-auto pb-1 scroll-fade-x">
         {recentClients.map((rc) => (
           <button
             key={rc.clientEmail}
@@ -347,7 +347,7 @@ export function NewInvoiceFlow({
   const productChips = products.length > 0 && (
     <div className="mb-4">
       <p className="mb-2 text-xs uppercase tracking-wide text-muted">Products and services</p>
-      <div className="flex gap-3 overflow-x-auto pb-1">
+      <div className="flex gap-3 overflow-x-auto pb-1 scroll-fade-x">
         {products.slice(0, 8).map((product) => {
           const isAdded = items.some((item) => item.productId === product.id);
           return (

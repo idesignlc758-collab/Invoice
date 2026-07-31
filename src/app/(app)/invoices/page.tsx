@@ -27,19 +27,19 @@ export default async function InvoicesPage() {
         </Link>
       </div>
       <section className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-3xl border border-line bg-card p-5">
+        <div className="rounded-2xl border border-line bg-card p-5">
           <p className="text-sm text-muted">Awaiting</p>
           <p className="mt-2 font-display text-2xl font-extrabold tabular-nums">
             {formatCents(openCents)}
           </p>
         </div>
-        <div className="rounded-3xl border border-line bg-card p-5">
+        <div className="rounded-2xl border border-line bg-card p-5">
           <p className="text-sm text-muted">Paid</p>
           <p className="mt-2 font-display text-2xl font-extrabold tabular-nums">
             {formatCents(paidCents)}
           </p>
         </div>
-        <div className="rounded-3xl border border-line bg-card p-5">
+        <div className="rounded-2xl border border-line bg-card p-5">
           <p className="text-sm text-muted">Total invoices</p>
           <p className="mt-2 font-display text-2xl font-extrabold tabular-nums">
             {user.invoices.length}
