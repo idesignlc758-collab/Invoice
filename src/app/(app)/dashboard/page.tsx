@@ -30,10 +30,16 @@ export default async function DashboardPage({
   searchParams: Promise<{ onboarding?: string; reason?: string; country?: string }>;
 }) {
   const user = await getCurrentUserWithInvoices();
-  const [productCount, clientCount, profile] = await Promise.all([
+  const [productCount, clientCount, profile, saleReceipts] = await Promise.all([
     prisma.product.count({ where: { userId: user.id, active: true } }),
     prisma.client.count({ where: { userId: user.id } }),
     prisma.businessProfile.findUnique({ where: { userId: user.id } }),
+    // "Collected" below means all money in, not just invoiced money, so
+    // sale receipts have to be part of these totals.
+    prisma.saleReceipt.findMany({
+      where: { userId: user.id, status: "completed" },
+      select: { total: true, saleDate: true },
+    }),
   ]);
   const { onboarding, reason, country: attemptedCountry } = await searchParams;
   const isReady = user.onboardingStatus === "ready";
@@ -42,12 +48,20 @@ export default async function DashboardPage({
   startOfToday.setHours(0, 0, 0, 0);
   const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
 
-  const todayCents = user.invoices
-    .filter((i) => i.status === "paid" && i.paidAt && i.paidAt >= startOfToday)
-    .reduce((sum, i) => sum + i.amount, 0);
-  const monthCents = user.invoices
-    .filter((i) => i.status === "paid" && i.paidAt && i.paidAt >= startOfMonth)
-    .reduce((sum, i) => sum + i.amount, 0);
+  const todayCents =
+    user.invoices
+      .filter((i) => i.status === "paid" && i.paidAt && i.paidAt >= startOfToday)
+      .reduce((sum, i) => sum + i.amount, 0) +
+    saleReceipts
+      .filter((r) => r.saleDate >= startOfToday)
+      .reduce((sum, r) => sum + r.total, 0);
+  const monthCents =
+    user.invoices
+      .filter((i) => i.status === "paid" && i.paidAt && i.paidAt >= startOfMonth)
+      .reduce((sum, i) => sum + i.amount, 0) +
+    saleReceipts
+      .filter((r) => r.saleDate >= startOfMonth)
+      .reduce((sum, r) => sum + r.total, 0);
   const openInvoices = user.invoices.filter((i) => i.status === "open");
   const openCents = openInvoices.reduce((sum, i) => sum + i.amount, 0);
   const monthNetCents = user.invoices
@@ -215,7 +229,7 @@ export default async function DashboardPage({
               ["Paid invoices", paidCount.toString()],
               ["Clients auto-saved", clientCount.toString()],
               ["Products active", productCount.toString()],
-              ["Net after fee", formatCents(monthNetCents, "usd")],
+              ["Net after fee (invoices)", formatCents(monthNetCents, "usd")],
             ].map(([label, value]) => (
               <div key={label} className="rounded-2xl border border-line bg-card p-5">
                 <p className="text-sm text-muted">{label}</p>

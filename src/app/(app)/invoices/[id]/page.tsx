@@ -15,6 +15,27 @@ function formatDate(date: Date | null) {
   }).format(date);
 }
 
+function formatDateTime(date: Date | null) {
+  if (!date) return null;
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  created: "Invoice created",
+  terms_accepted: "Client agreed to terms",
+  signed: "Contract signed",
+  paid: "Payment received",
+  payment_failed: "Payment failed",
+  void: "Invoice voided",
+};
+
+function auditActionLabel(action: string) {
+  return AUDIT_ACTION_LABELS[action] ?? action;
+}
+
 export default async function InvoiceDetailPage({
   params,
 }: {
@@ -27,7 +48,10 @@ export default async function InvoiceDetailPage({
   // a 404 rather than exposing someone else's client and amounts.
   const invoice = await prisma.invoice.findFirst({
     where: { id, userId: user.id },
-    include: { lineItems: { orderBy: { position: "asc" } } },
+    include: {
+      lineItems: { orderBy: { position: "asc" } },
+      auditLog: { orderBy: { createdAt: "asc" } },
+    },
   });
 
   if (!invoice) notFound();
@@ -139,6 +163,71 @@ export default async function InvoiceDetailPage({
                 </p>
               </div>
             )}
+          </div>
+        </section>
+      )}
+
+      {invoice.clientTerms && (
+        <section className="mt-4 rounded-2xl border border-line bg-card p-5">
+          <p className="mb-3 text-xs uppercase tracking-wide text-muted">Contract & agreement</p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted">
+            {invoice.clientTerms}
+          </p>
+
+          {invoice.requireSignature && (
+            <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4">
+              {invoice.senderSignatureData && (
+                <div className="flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={invoice.senderSignatureData}
+                    alt="Your signature"
+                    className="h-12 max-w-[160px] rounded-lg border border-line bg-white object-contain p-1"
+                  />
+                  <div className="text-sm">
+                    <p className="font-medium">{invoice.senderSignerName}</p>
+                    <p className="text-xs text-muted">
+                      You signed {formatDateTime(invoice.senderSignatureDate)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {invoice.signatureData ? (
+                <div className="flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={invoice.signatureData}
+                    alt={`${invoice.signerName}'s signature`}
+                    className="h-12 max-w-[160px] rounded-lg border border-line bg-white object-contain p-1"
+                  />
+                  <div className="text-sm">
+                    <p className="font-medium text-success">{invoice.signerName} signed</p>
+                    <p className="text-xs text-muted">{formatDateTime(invoice.signatureDate)}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm font-medium text-foreground">
+                  Awaiting the client&apos;s signature before they can pay.
+                </p>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {invoice.auditLog.length > 0 && (
+        <section className="mt-4 rounded-2xl border border-line bg-card p-5">
+          <p className="mb-3 text-xs uppercase tracking-wide text-muted">Activity</p>
+          <div className="flex flex-col gap-3">
+            {invoice.auditLog.map((entry) => (
+              <div key={entry.id} className="flex items-start justify-between gap-4 text-sm">
+                <span className="min-w-0">{auditActionLabel(entry.action)}</span>
+                <span className="shrink-0 text-xs text-muted">
+                  {formatDateTime(entry.createdAt)}
+                </span>
+              </div>
+            ))}
           </div>
         </section>
       )}

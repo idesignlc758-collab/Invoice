@@ -4,6 +4,7 @@ import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { sendInvoicePaidEmail, sendOnboardingReadyEmail } from "@/lib/mail";
+import { logInvoiceEvent } from "@/lib/invoice-audit";
 
 export const runtime = "nodejs";
 
@@ -74,6 +75,16 @@ export async function POST(request: Request) {
           where: { id: local.id },
           data: { status: "paid", paidAt: new Date() },
         });
+        try {
+          await logInvoiceEvent({
+            invoiceId: local.id,
+            action: "paid",
+            oldStatus: local.status,
+            newStatus: "paid",
+          });
+        } catch (error) {
+          console.error("Failed to write invoice audit log", error);
+        }
         await sendInvoicePaidEmail({
           to: local.user.email,
           invoiceDescription: local.description,
@@ -88,10 +99,23 @@ export async function POST(request: Request) {
 
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
+      const local = await prisma.invoice.findUnique({ where: { stripeInvoiceId: invoice.id } });
       await prisma.invoice.updateMany({
         where: { stripeInvoiceId: invoice.id },
         data: { status: "payment_failed" },
       });
+      if (local) {
+        try {
+          await logInvoiceEvent({
+            invoiceId: local.id,
+            action: "payment_failed",
+            oldStatus: local.status,
+            newStatus: "payment_failed",
+          });
+        } catch (error) {
+          console.error("Failed to write invoice audit log", error);
+        }
+      }
       break;
     }
 

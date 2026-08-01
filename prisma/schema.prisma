@@ -11,31 +11,48 @@ datasource db {
 }
 
 model User {
-  id               String           @id @default(cuid())
-  clerkId          String           @unique
-  email            String           @unique
-  stripeAccountId  String?          @unique
-  onboardingStatus String           @default("not_started") // not_started | pending | ready
-  createdAt        DateTime         @default(now())
-  invoices         Invoice[]
-  estimates        Estimate[]
-  clients          Client[]
-  products         Product[]
-  businessProfile  BusinessProfile?
+  id                      String                   @id @default(cuid())
+  clerkId                 String                   @unique
+  email                   String                   @unique
+  stripeAccountId         String?                  @unique
+  onboardingStatus        String                   @default("not_started") // not_started | pending | ready
+  createdAt               DateTime                 @default(now())
+  invoices                Invoice[]
+  estimates               Estimate[]
+  clients                 Client[]
+  products                Product[]
+  expenses                Expense[]
+  saleReceipts            SaleReceipt[]
+  accounts                Account[]
+  journalEntries          JournalEntry[]
+  budgets                 Budget[]
+  bankAccounts            BankAccount[]
+  bankTransactions        BankTransaction[]
+  fixedAssets             FixedAsset[]
+  recurringTransactions   RecurringTransaction[]
+  projects                Project[]
+  employees               Employee[]
+  payRuns                 PayRun[]
+  fxRates                 FxRate[]
+  inventoryItems          InventoryItem[]
+  businessProfile         BusinessProfile?
+  paymentReminderSettings PaymentReminderSettings?
 }
 
 model Client {
-  id               String     @id @default(cuid())
+  id               String        @id @default(cuid())
   userId           String
-  user             User       @relation(fields: [userId], references: [id])
+  user             User          @relation(fields: [userId], references: [id])
   email            String
   name             String?
   stripeCustomerId String?
   lastInvoicedAt   DateTime?
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
   invoices         Invoice[]
   estimates        Estimate[]
+  saleReceipts     SaleReceipt[]
+  projects         Project[]
 
   @@unique([userId, email])
   @@index([userId])
@@ -60,6 +77,7 @@ model Product {
 
   lineItems         InvoiceLineItem[]
   estimateLineItems EstimateLineItem[]
+  inventoryItem     InventoryItem?
 
   @@unique([userId, name])
   @@index([userId])
@@ -96,6 +114,8 @@ model Invoice {
   user                   User      @relation(fields: [userId], references: [id])
   clientId               String?
   client                 Client?   @relation(fields: [clientId], references: [id])
+  projectId              String?
+  project                Project?  @relation(fields: [projectId], references: [id])
   publicToken            String    @unique @default(cuid())
   stripeInvoiceId        String    @unique
   stripeCustomerId       String
@@ -134,13 +154,39 @@ model Invoice {
   termsAcceptedAt        DateTime?
   termsAcceptedIp        String?
   termsAcceptedUserAgent String?
+  requireSignature       Boolean   @default(false)
+  senderSignatureData    String?
+  senderSignerName       String?
+  senderSignatureDate    DateTime?
+  signatureData          String?
+  signerName             String?
+  signatureDate          DateTime?
+  signatureIp            String?
+  signatureUserAgent     String?
   dueDate                DateTime?
   paidAt                 DateTime?
   createdAt              DateTime  @default(now())
 
-  lineItems InvoiceLineItem[]
+  lineItems              InvoiceLineItem[]
+  auditLog               InvoiceAuditLog[]
+  reminders              PaymentReminderSent[]
+  matchedBankTransaction BankTransaction?
 
   @@index([userId])
+  @@index([projectId])
+}
+
+model InvoiceAuditLog {
+  id        String   @id @default(cuid())
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  action    String // created | sent | terms_accepted | signed | paid | void
+  oldStatus String?
+  newStatus String?
+  metadata  String? // JSON-encoded extra detail (e.g. signer name)
+  createdAt DateTime @default(now())
+
+  @@index([invoiceId])
 }
 
 model InvoiceLineItem {
@@ -225,6 +271,380 @@ model EstimateLineItem {
 
   @@index([estimateId])
   @@index([productId])
+}
+
+model Expense {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  projectId     String?
+  project       Project? @relation(fields: [projectId], references: [id])
+  date          DateTime
+  description   String
+  category      String
+  vendor        String?
+  amount        Int // cents
+  paymentMethod String?
+  receiptUrl    String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  matchedBankTransaction BankTransaction?
+
+  @@index([userId])
+  @@index([userId, date])
+  @@index([projectId])
+}
+
+model SaleReceipt {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  clientId         String?
+  client           Client?  @relation(fields: [clientId], references: [id])
+  receiptNumber    String
+  customerName     String
+  customerEmail    String
+  customerAddress  String?
+  saleDate         DateTime
+  subtotal         Int      @default(0) // cents
+  taxPercent       Float    @default(0)
+  taxAmount        Int      @default(0)
+  total            Int
+  currency         String   @default("usd")
+  paymentMethod    String?
+  paymentReference String?
+  notes            String?
+  status           String   @default("completed") // draft | completed | void
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  lineItems              SaleReceiptLineItem[]
+  matchedBankTransaction BankTransaction?
+
+  @@unique([userId, receiptNumber])
+  @@index([userId])
+  @@index([clientId])
+}
+
+model SaleReceiptLineItem {
+  id            String      @id @default(cuid())
+  saleReceiptId String
+  saleReceipt   SaleReceipt @relation(fields: [saleReceiptId], references: [id], onDelete: Cascade)
+  description   String
+  quantity      Int         @default(1)
+  unitAmount    Int // cents
+  amount        Int // cents
+  position      Int         @default(0)
+
+  @@index([saleReceiptId])
+}
+
+model PaymentReminderSettings {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  isEnabled     Boolean  @default(false)
+  daysBeforeDue String   @default("[]") // JSON int array, e.g. "[3]"
+  daysAfterDue  String   @default("[]") // JSON int array, e.g. "[1,7,14]"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PaymentReminderSent {
+  id         String   @id @default(cuid())
+  invoiceId  String
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  daysOffset Int // positive = days before due, negative = days after due, 0 = due today
+  sentAt     DateTime @default(now())
+
+  @@unique([invoiceId, daysOffset])
+  @@index([invoiceId])
+}
+
+model Account {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  code        String
+  name        String
+  type        String // asset | liability | equity | income | expense
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  journalEntryLines JournalEntryLine[]
+
+  @@unique([userId, code])
+  @@index([userId])
+}
+
+model JournalEntry {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id])
+  date         DateTime
+  memo         String?
+  reversalOfId String?       @unique
+  reversalOf   JournalEntry? @relation("Reversal", fields: [reversalOfId], references: [id])
+  reversedBy   JournalEntry? @relation("Reversal")
+  createdAt    DateTime      @default(now())
+
+  lines JournalEntryLine[]
+
+  @@index([userId])
+}
+
+model JournalEntryLine {
+  id             String       @id @default(cuid())
+  journalEntryId String
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  accountId      String
+  account        Account      @relation(fields: [accountId], references: [id])
+  description    String?
+  debit          Int          @default(0) // cents
+  credit         Int          @default(0) // cents
+  position       Int          @default(0)
+
+  @@index([journalEntryId])
+  @@index([accountId])
+}
+
+model Budget {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  name      String
+  year      Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lines BudgetLine[]
+
+  @@unique([userId, year, name])
+  @@index([userId])
+}
+
+model BudgetLine {
+  id       String @id @default(cuid())
+  budgetId String
+  budget   Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category String
+  amounts  String // JSON array of 12 monthly cents values, Jan..Dec
+
+  @@unique([budgetId, category])
+  @@index([budgetId])
+}
+
+model BankAccount {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  name            String
+  accountType     String // checking | savings | credit_card | other
+  last4           String?
+  startingBalance Int      @default(0) // cents
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  transactions BankTransaction[]
+
+  @@index([userId])
+}
+
+model BankTransaction {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  bankAccountId String
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  date          DateTime
+  description   String
+  amount        Int // cents, signed: positive = money in, negative = money out
+  isReconciled  Boolean     @default(false)
+
+  matchedExpenseId     String?      @unique
+  matchedExpense       Expense?     @relation(fields: [matchedExpenseId], references: [id])
+  matchedSaleReceiptId String?      @unique
+  matchedSaleReceipt   SaleReceipt? @relation(fields: [matchedSaleReceiptId], references: [id])
+  matchedInvoiceId     String?      @unique
+  matchedInvoice       Invoice?     @relation(fields: [matchedInvoiceId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([bankAccountId])
+}
+
+model FixedAsset {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id])
+  name             String
+  purchaseDate     DateTime
+  cost             Int // cents
+  usefulLifeMonths Int
+  salvageValue     Int       @default(0) // cents
+  isDisposed       Boolean   @default(false)
+  disposedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model RecurringTransaction {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  templateName   String
+  description    String
+  category       String
+  vendor         String?
+  amount         Int // cents
+  frequency      String // weekly | monthly | quarterly | yearly
+  startDate      DateTime
+  endDate        DateTime?
+  nextOccurrence DateTime
+  lastExecutedAt DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id])
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  expenses Expense[]
+  invoices Invoice[]
+
+  @@index([userId])
+  @@index([clientId])
+}
+
+// Payroll models are record-keeping only. Gross pay is tracked; tax
+// withholding fields are entered manually by the business (from their
+// actual payroll provider or accountant) -- this app does not calculate,
+// withhold, file, or remit any payroll taxes.
+model Employee {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  name      String
+  email     String?
+  role      String?
+  payType   String // salary | hourly
+  payRate   Int // cents: annual salary if payType=salary, hourly rate if payType=hourly
+  startDate DateTime
+  endDate   DateTime?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  ptoBalance  PtoBalance?
+  payRunItems PayRunItem[]
+
+  @@index([userId])
+}
+
+model PtoBalance {
+  id           String   @id @default(cuid())
+  employeeId   String   @unique
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  hoursAccrued Float    @default(0)
+  hoursUsed    Float    @default(0)
+  updatedAt    DateTime @updatedAt
+}
+
+model PayRun {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  payPeriodStart DateTime
+  payPeriodEnd   DateTime
+  payDate        DateTime
+  status         String   @default("draft") // draft | finalized
+  createdAt      DateTime @default(now())
+
+  items PayRunItem[]
+
+  @@index([userId])
+}
+
+model PayRunItem {
+  id              String   @id @default(cuid())
+  payRunId        String
+  payRun          PayRun   @relation(fields: [payRunId], references: [id], onDelete: Cascade)
+  employeeId      String
+  employee        Employee @relation(fields: [employeeId], references: [id])
+  grossPay        Int // cents
+  federalTax      Int      @default(0) // cents, manually entered
+  stateTax        Int      @default(0)
+  socialSecurity  Int      @default(0)
+  medicare        Int      @default(0)
+  otherDeductions Int      @default(0)
+  netPay          Int // cents
+
+  @@index([payRunId])
+  @@index([employeeId])
+}
+
+model FxRate {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  fromCurrency String
+  toCurrency   String
+  rate         Float // 1 fromCurrency = rate * toCurrency
+  asOf         DateTime
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, fromCurrency, toCurrency, asOf])
+  @@index([userId])
+}
+
+model InventoryItem {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  productId      String?  @unique
+  product        Product? @relation(fields: [productId], references: [id])
+  sku            String?
+  name           String
+  quantityOnHand Int      @default(0)
+  unitCost       Int      @default(0) // cents
+  reorderPoint   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  adjustments InventoryAdjustment[]
+
+  @@index([userId])
+}
+
+model InventoryAdjustment {
+  id              String        @id @default(cuid())
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  quantityChange  Int // positive = stock in, negative = stock out
+  reason          String // purchase | sale | adjustment | return
+  notes           String?
+  createdAt       DateTime      @default(now())
+
+  @@index([inventoryItemId])
 }
 
 model WebhookEvent {

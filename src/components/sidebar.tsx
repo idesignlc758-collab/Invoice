@@ -2,6 +2,7 @@
 
 import {
   BadgeDollarSign,
+  BookOpen,
   Boxes,
   BriefcaseBusiness,
   Brush,
@@ -11,14 +12,30 @@ import {
   CreditCard,
   ClipboardCheck,
   FileText,
+  FolderKanban,
+  Globe,
   History,
+  Landmark,
+  Laptop,
   LayoutDashboard,
+  Package,
   LifeBuoy,
+  Library,
   LogOut,
+  NotebookPen,
+  PieChart,
+  PiggyBank,
+  Percent,
   Plus,
+  Receipt,
+  ReceiptText,
+  Repeat,
+  Scale,
+  ScrollText,
   Settings,
   ShieldCheck,
   Sparkles,
+  Users,
   WalletCards,
 } from "lucide-react";
 import { SignOutButton as ClerkSignOutButton, useUser } from "@clerk/nextjs";
@@ -33,7 +50,29 @@ const navGroups = [
       { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
       { href: "/estimates", label: "Estimates", icon: ClipboardCheck },
       { href: "/invoices", label: "Invoices", icon: FileText },
+      { href: "/expenses", label: "Expenses", icon: Receipt },
+      { href: "/sale-receipts", label: "Sale Receipts", icon: ReceiptText },
       { href: "/payments", label: "Payments", icon: CreditCard },
+      { href: "/reports", label: "Reports", icon: PieChart },
+      { href: "/statements", label: "Statements", icon: ScrollText },
+      { href: "/projects", label: "Projects", icon: FolderKanban },
+    ],
+  },
+  {
+    label: "Books",
+    items: [
+      { href: "/accounts", label: "Chart of Accounts", icon: BookOpen },
+      { href: "/journal-entries", label: "Journal Entries", icon: NotebookPen },
+      { href: "/general-ledger", label: "General Ledger", icon: Library },
+      { href: "/trial-balance", label: "Trial Balance", icon: Scale },
+      { href: "/budgets", label: "Budgets", icon: PiggyBank },
+      { href: "/banking", label: "Banking", icon: Landmark },
+      { href: "/fixed-assets", label: "Fixed Assets", icon: Laptop },
+      { href: "/recurring-transactions", label: "Recurring", icon: Repeat },
+      { href: "/payroll", label: "Payroll", icon: Users },
+      { href: "/tax", label: "Tax Collected", icon: Percent },
+      { href: "/fx-rates", label: "Exchange Rates", icon: Globe },
+      { href: "/inventory", label: "Inventory", icon: Package },
     ],
   },
   {
@@ -49,6 +88,7 @@ const mobileItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/estimates", label: "Estimates", icon: ClipboardCheck },
   { href: "/invoices", label: "Invoices", icon: FileText },
+  { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/products", label: "Products", icon: Boxes },
   { href: "/payments", label: "Payments", icon: CreditCard },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -354,7 +394,7 @@ export function Sidebar() {
         </Link>
       )}
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-6 border-t border-line bg-background/95 px-1 pb-safe pt-2 text-[9px] font-medium backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-7 border-t border-line bg-background/95 px-1 pb-safe pt-2 text-[9px] font-medium backdrop-blur md:hidden">
         {mobileItems.map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = item.icon;

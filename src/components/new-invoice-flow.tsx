@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Keypad } from "@/components/keypad";
 import { formatCents, initials } from "@/lib/format";
 import { PLATFORM_FEE_PERCENT, PLATFORM_FEE_FLAT_CENTS, calculateFeeAmount } from "@/lib/fees";
+import { generateTypedSignatureDataUrl } from "@/lib/signature";
 
 const QUICK_AMOUNTS = [2500, 5000, 10000, 25000, 50000];
 const DUE_PRESETS = [
@@ -77,6 +78,7 @@ export function NewInvoiceFlow({
   defaultTermsDays,
   defaultClientTerms,
   defaultClientNote,
+  projects = [],
 }: {
   recentClients: RecentClient[];
   products: SavedProduct[];
@@ -85,6 +87,7 @@ export function NewInvoiceFlow({
   defaultTermsDays: number;
   defaultClientTerms: string;
   defaultClientNote: string;
+  projects?: { id: string; name: string }[];
 }) {
   const [step, setStep] = useState<Step>(initialEstimate ? "details" : "amount");
   const [mobileAmountCents, setMobileAmountCents] = useState(0);
@@ -101,9 +104,13 @@ export function NewInvoiceFlow({
   const [dueInDays, setDueInDays] = useState(initialEstimate?.dueInDays ?? defaultTermsDays);
   const [clientNote, setClientNote] = useState(initialEstimate?.clientNote ?? defaultClientNote);
   const [privateMemo, setPrivateMemo] = useState(initialEstimate?.privateMemo ?? "");
+  const [projectId, setProjectId] = useState("");
   const [invoiceTerms, setInvoiceTerms] = useState(
     initialEstimate?.clientTerms ?? defaultClientTerms
   );
+  const [requireSignature, setRequireSignature] = useState(false);
+  const [senderSignerName, setSenderSignerName] = useState("");
+  const [senderSignatureData, setSenderSignatureData] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(Boolean(initialEstimate?.clientName));
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -128,7 +135,11 @@ export function NewInvoiceFlow({
     items.every(
       (item) => item.description.trim().length > 0 && item.unitCents > 0 && item.quantity > 0
     );
-  const canSend = clientEmail.trim().length > 3 && hasValidItems && allItemsComplete;
+  const canSend =
+    clientEmail.trim().length > 3 &&
+    hasValidItems &&
+    allItemsComplete &&
+    (!requireSignature || Boolean(senderSignatureData && senderSignerName.trim()));
   const invoiceRows = items
     .filter((item) => item.description.trim().length > 0 || item.unitCents > 0)
     .map((item) => ({
@@ -209,7 +220,11 @@ export function NewInvoiceFlow({
     setDueInDays(defaultTermsDays);
     setClientNote(defaultClientNote);
     setPrivateMemo("");
+    setProjectId("");
     setInvoiceTerms(defaultClientTerms);
+    setRequireSignature(false);
+    setSenderSignerName("");
+    setSenderSignatureData(null);
     setShowDetails(false);
     setError(null);
     setSentUrl(null);
@@ -232,7 +247,11 @@ export function NewInvoiceFlow({
         taxPercent,
         clientNote,
         privateMemo,
+        projectId: projectId || undefined,
         clientTerms: invoiceTerms,
+        requireSignature,
+        senderSignerName,
+        senderSignatureData,
         estimateId: initialEstimate?.id,
         deliveryMode: "branded_email",
         items: items.map((item) => ({
@@ -508,6 +527,83 @@ export function NewInvoiceFlow({
             Clients must agree before opening the secure Stripe payment page.
           </span>
         </label>
+
+        {invoiceTerms.trim().length > 0 && (
+          <div className="rounded-xl border border-line bg-card p-4">
+            <label className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={requireSignature}
+                onChange={(e) => {
+                  setRequireSignature(e.target.checked);
+                  if (!e.target.checked) {
+                    setSenderSignatureData(null);
+                    setSenderSignerName("");
+                  }
+                }}
+                className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]"
+              />
+              <span>
+                <span className="block font-medium text-foreground">
+                  Require an electronic signature
+                </span>
+                <span className="text-xs text-muted">
+                  The client signs the contract terms above (typed or drawn) before they can pay,
+                  instead of just checking a box.
+                </span>
+              </span>
+            </label>
+
+            {requireSignature && (
+              <div className="mt-4 rounded-xl border border-line bg-background p-4">
+                <p className="text-xs uppercase tracking-wide text-muted">Your signature</p>
+                <p className="mt-1 text-xs text-muted">
+                  Sign first as the party sending this contract — the client signs when they
+                  receive it.
+                </p>
+                {senderSignatureData ? (
+                  <div className="mt-3 flex items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={senderSignatureData}
+                      alt="Your signature"
+                      className="h-14 max-w-[200px] rounded-lg border border-line bg-white object-contain p-1"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{senderSignerName}</p>
+                      <button
+                        type="button"
+                        onClick={() => setSenderSignatureData(null)}
+                        className="text-xs text-danger"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      type="text"
+                      value={senderSignerName}
+                      onChange={(e) => setSenderSignerName(e.target.value)}
+                      placeholder="Type your full name to sign"
+                      className="flex-1 rounded-xl border border-line bg-card px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent"
+                    />
+                    <button
+                      type="button"
+                      disabled={!senderSignerName.trim()}
+                      onClick={() => setSenderSignatureData(generateTypedSignatureDataUrl(senderSignerName))}
+                      className="rounded-xl border border-line px-4 py-3 text-sm font-bold disabled:opacity-40"
+                    >
+                      Apply signature
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <label className="flex flex-col gap-1.5 text-sm">
           Private memo
           <textarea
@@ -520,6 +616,24 @@ export function NewInvoiceFlow({
           />
           <span className="text-xs text-muted">Not shown to the client.</span>
         </label>
+
+        {projects.length > 0 && (
+          <label className="flex flex-col gap-1.5 text-sm">
+            Project <span className="text-muted">(optional)</span>
+            <select
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              className={`rounded-xl border border-line ${inputBg} px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-accent`}
+            >
+              <option value="">No project</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
     </details>
   );
@@ -1067,6 +1181,13 @@ export function NewInvoiceFlow({
                           <p className="mt-1 max-h-36 overflow-auto whitespace-pre-wrap rounded-xl bg-card p-3 leading-relaxed text-muted">
                             {invoiceTerms}
                           </p>
+                          {requireSignature && (
+                            <p className="mt-2 text-xs text-muted">
+                              Signature required — you signed as{" "}
+                              <span className="font-medium text-foreground">{senderSignerName}</span>.
+                              The client signs before paying.
+                            </p>
+                          )}
                         </div>
                       )}
                       {privateMemo && (

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendTermsAgreementEmail } from "@/lib/mail";
 import { generateLegalAgreementPdf } from "@/lib/legal-pdf";
+import { logInvoiceEvent } from "@/lib/invoice-audit";
 
 export async function POST(
   request: Request,
@@ -45,6 +46,12 @@ export async function POST(
       termsAcceptedUserAgent: userAgent,
     },
   });
+
+  try {
+    await logInvoiceEvent({ invoiceId: invoice.id, action: "terms_accepted" });
+  } catch (error) {
+    console.error("Failed to write invoice audit log", error);
+  }
 
   // Awaited rather than fire-and-forget: on a serverless function, work left
   // running after the response is sent isn't guaranteed to finish, and this

@@ -438,3 +438,153 @@ export async function sendTermsAgreementEmail(params: {
     ],
   });
 }
+
+// Sent to both the client and the business owner the moment the client signs
+// a required contract -- same "durable record independent of the database
+// row" reasoning as sendTermsAgreementEmail, but for the business's own
+// per-invoice contract terms rather than the platform's legal documents.
+export async function sendContractSignedEmail(params: {
+  to: string;
+  recipientIsBusiness: boolean;
+  businessName: string;
+  clientName?: string | null;
+  invoiceDescription: string;
+  invoiceNumber?: string | null;
+  totalCents: number;
+  currency: string;
+  signerName: string;
+  signedAt: Date;
+  publicInvoiceUrl: string;
+  pdfBase64: string;
+}) {
+  const {
+    to,
+    recipientIsBusiness,
+    businessName,
+    clientName,
+    invoiceDescription,
+    invoiceNumber,
+    totalCents,
+    currency,
+    signerName,
+    signedAt,
+    publicInvoiceUrl,
+    pdfBase64,
+  } = params;
+  const amount = formatCents(totalCents, currency);
+  const signedAtText = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(signedAt);
+  const invoiceLabel = invoiceNumber ? `invoice ${invoiceNumber}` : `the invoice for "${invoiceDescription}"`;
+  const greeting = recipientIsBusiness
+    ? "Hi,"
+    : clientName
+      ? `Hi ${clientName},`
+      : "Hi,";
+  const intro = recipientIsBusiness
+    ? `${signerName} signed the contract on ${invoiceLabel} (${amount}) with ${businessName} on ${signedAtText}.`
+    : `This confirms that ${signerName} signed the contract on ${invoiceLabel} (${amount}) with ${businessName} on ${signedAtText}.`;
+
+  await sendMailtrapEmail({
+    to,
+    subject: `Contract signed - ${invoiceLabel}`,
+    text:
+      `${greeting}\n\n` +
+      `${intro}\n\n` +
+      `A copy of the signed agreement is attached to this email for your records.\n\n` +
+      `View the invoice: ${publicInvoiceUrl}`,
+    html:
+      paragraph(greeting) +
+      paragraph(intro) +
+      paragraph("A copy of the signed agreement is attached to this email for your records.") +
+      `<p><a href="${escapeHtml(publicInvoiceUrl)}">View the invoice</a></p>`,
+    attachments: [
+      {
+        filename: `Signed-Agreement-${invoiceNumber ?? "invoice"}.pdf`,
+        content: pdfBase64,
+        type: "application/pdf",
+      },
+    ],
+  });
+}
+
+export async function sendPaymentReminderEmail(params: {
+  to: string;
+  clientName?: string | null;
+  businessName: string;
+  invoiceDescription: string;
+  totalCents: number;
+  currency: string;
+  dueDate: Date | null;
+  publicInvoiceUrl: string;
+  daysOffset: number; // positive = days before due, negative = days after due, 0 = due today
+}) {
+  const {
+    to,
+    clientName,
+    businessName,
+    invoiceDescription,
+    totalCents,
+    currency,
+    dueDate,
+    publicInvoiceUrl,
+    daysOffset,
+  } = params;
+  const greeting = clientName ? `Hi ${clientName},` : "Hi,";
+  const amount = formatCents(totalCents, currency);
+  const dueLine = dueDate
+    ? daysOffset > 0
+      ? `is due in ${daysOffset} day${daysOffset === 1 ? "" : "s"} (${formatDate(dueDate)})`
+      : daysOffset < 0
+        ? `was due ${Math.abs(daysOffset)} day${Math.abs(daysOffset) === 1 ? "" : "s"} ago (${formatDate(dueDate)})`
+        : `is due today (${formatDate(dueDate)})`
+    : "is due";
+
+  return sendMailtrapEmail({
+    to,
+    subject: `Reminder: ${amount} ${daysOffset < 0 ? "overdue" : "due soon"} for ${businessName}`,
+    text:
+      `${greeting}\n\n` +
+      `This is a reminder that your invoice for "${invoiceDescription}" (${amount}) ${dueLine}.\n\n` +
+      `Pay securely: ${publicInvoiceUrl}`,
+    html:
+      paragraph(greeting) +
+      paragraph(`This is a reminder that your invoice for "${invoiceDescription}" (${amount}) ${dueLine}.`) +
+      `<p><a href="${escapeHtml(publicInvoiceUrl)}">Pay securely</a></p>`,
+  });
+}
+
+export async function sendSaleReceiptEmail(params: {
+  to: string;
+  customerName: string;
+  businessName: string;
+  receiptNumber: string;
+  totalCents: number;
+  currency: string;
+  pdfBase64: string;
+}) {
+  const { to, customerName, businessName, receiptNumber, totalCents, currency, pdfBase64 } = params;
+  const amount = formatCents(totalCents, currency);
+  const greeting = customerName ? `Hi ${customerName},` : "Hi,";
+
+  return sendMailtrapEmail({
+    to,
+    subject: `Receipt ${receiptNumber} from ${businessName} - ${amount}`,
+    text:
+      `${greeting}\n\n` +
+      `Thanks for your payment of ${amount} to ${businessName}. A copy of your receipt (${receiptNumber}) is attached for your records.`,
+    html:
+      paragraph(greeting) +
+      paragraph(
+        `Thanks for your payment of ${amount} to ${businessName}. A copy of your receipt (${receiptNumber}) is attached for your records.`
+      ),
+    attachments: [
+      {
+        filename: `Receipt-${receiptNumber}.pdf`,
+        content: pdfBase64,
+        type: "application/pdf",
+      },
+    ],
+  });
+}

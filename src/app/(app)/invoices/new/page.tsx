@@ -34,6 +34,11 @@ export default async function NewInvoicePage({
     where: { userId: user.id },
     select: { defaultTermsDays: true, clientTerms: true, defaultClientNote: true },
   });
+  const projects = await prisma.project.findMany({
+    where: { userId: user.id, isActive: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
 
   const recentClients = getRecentClients(invoices, 5);
 
@@ -81,6 +86,7 @@ export default async function NewInvoicePage({
       defaultTermsDays={profile?.defaultTermsDays ?? 0}
       defaultClientTerms={profile?.clientTerms ?? ""}
       defaultClientNote={profile?.defaultClientNote ?? ""}
+      projects={projects}
     />
   );
 }

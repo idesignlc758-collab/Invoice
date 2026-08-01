@@ -1,0 +1,46 @@
+export const EXPENSE_CATEGORIES = [
+  "Rent",
+  "Utilities",
+  "Office",
+  "Office Supplies",
+  "Insurance",
+  "Travel",
+  "Marketing",
+  "Advertising",
+  "Payroll",
+  "Salaries",
+  "Wages",
+  "Professional Services",
+  "Legal",
+  "Consulting",
+  "Maintenance",
+  "Repairs",
+  "Subscriptions",
+  "Software",
+  "Supplies",
+  "Meals",
+  "Entertainment",
+  "Shipping",
+  "Postage",
+  "Telephone",
+  "Internet",
+  "Training",
+  "Education",
+  "Depreciation",
+  "Taxes",
+  "Fees",
+  "Bank Fees",
+  "Other",
+] as const;
+
+export const EXPENSE_PAYMENT_METHODS = [
+  "Cash",
+  "Credit Card",
+  "Debit Card",
+  "Bank Transfer",
+  "Check",
+  "Other",
+] as const;
+
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+export type ExpensePaymentMethod = (typeof EXPENSE_PAYMENT_METHODS)[number];

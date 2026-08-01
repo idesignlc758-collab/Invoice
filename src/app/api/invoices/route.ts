@@ -5,6 +5,7 @@ import { stripe, calculateFeeAmount } from "@/lib/stripe";
 import { formatCents } from "@/lib/format";
 import { sendBrandedInvoiceEmail } from "@/lib/mail";
 import { parseLineItems, summarizeItems } from "@/lib/line-items";
+import { logInvoiceEvent } from "@/lib/invoice-audit";
 
 async function resolveTaxRateId(percentage: number): Promise<string> {
   const existing = await stripe.taxRates.list({ active: true, limit: 100 });
@@ -101,6 +102,12 @@ export async function POST(request: Request) {
   const clientNote = String(body.clientNote ?? "").trim().slice(0, 1000) || null;
   const privateMemo = String(body.privateMemo ?? "").trim().slice(0, 1000) || null;
   const clientTerms = String(body.clientTerms ?? "").trim().slice(0, 4000) || null;
+  const projectId = body.projectId ? String(body.projectId) : null;
+  const requireSignature = Boolean(body.requireSignature);
+  const senderSignatureData = requireSignature ? String(body.senderSignatureData ?? "") : null;
+  const senderSignerName = requireSignature
+    ? String(body.senderSignerName ?? "").trim().slice(0, 200) || null
+    : null;
   const parsedCcEmails = parseEmailCopies(body.ccEmails, "CC", [normalizedClientEmail]);
   const parsedBccEmails = parseEmailCopies(body.bccEmails, "BCC", [
     normalizedClientEmail,
@@ -126,11 +133,35 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+  if (projectId) {
+    const ownedProject = await prisma.project.findFirst({ where: { id: projectId, userId: user.id } });
+    if (!ownedProject) {
+      return NextResponse.json({ error: "Project not found." }, { status: 404 });
+    }
+  }
   if (parsedCcEmails.error || parsedBccEmails.error) {
     return NextResponse.json(
       { error: parsedCcEmails.error ?? parsedBccEmails.error },
       { status: 400 }
     );
+  }
+  if (requireSignature) {
+    if (!clientTerms) {
+      return NextResponse.json(
+        { error: "Add contract terms before requiring a signature." },
+        { status: 400 }
+      );
+    }
+    if (
+      !senderSignerName ||
+      !senderSignatureData?.startsWith("data:image/") ||
+      senderSignatureData.length > 2_000_000
+    ) {
+      return NextResponse.json(
+        { error: "Sign the contract yourself before sending it for signature." },
+        { status: 400 }
+      );
+    }
   }
   if (
     deliveryMode !== "branded_email" &&
@@ -360,6 +391,7 @@ export async function POST(request: Request) {
     data: {
       userId: user.id,
       clientId: client.id,
+      projectId,
       stripeInvoiceId: sent.id!,
       stripeCustomerId: customerId,
       invoicePdfUrl: sent.invoice_pdf ?? null,
@@ -390,6 +422,10 @@ export async function POST(request: Request) {
       brandCountry: profile?.country ?? null,
       brandFooter,
       clientTerms,
+      requireSignature,
+      senderSignatureData,
+      senderSignerName,
+      senderSignatureDate: requireSignature ? new Date() : null,
       clientNote,
       privateMemo,
       sourceEstimateId: sourceEstimate?.id ?? null,
@@ -420,6 +456,17 @@ export async function POST(request: Request) {
     },
     data: { timesUsed: { increment: 1 } },
   });
+
+  try {
+    await logInvoiceEvent({
+      invoiceId: savedInvoice.id,
+      action: "created",
+      newStatus: savedInvoice.status,
+      metadata: { deliveryMode },
+    });
+  } catch (error) {
+    console.error("Failed to write invoice audit log", error);
+  }
 
   if (sourceEstimate) {
     await prisma.estimate.update({

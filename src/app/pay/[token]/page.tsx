@@ -14,6 +14,14 @@ function formatDate(date: Date | null) {
   }).format(date);
 }
 
+function formatDateTime(date: Date | null) {
+  if (!date) return null;
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
 function compactAddress(invoice: {
   brandAddressLine1: string | null;
   brandAddressLine2: string | null;
@@ -172,6 +180,14 @@ export default async function PublicInvoicePage({
               publicToken={invoice.publicToken}
               terms={invoice.clientTerms}
               brandColor={brandColor}
+              businessName={businessName}
+              requireSignature={invoice.requireSignature}
+              senderSignatureData={invoice.senderSignatureData}
+              senderSignerName={invoice.senderSignerName}
+              senderSignatureDateLabel={formatDateTime(invoice.senderSignatureDate)}
+              signatureData={invoice.signatureData}
+              signerName={invoice.signerName}
+              signatureDateLabel={formatDateTime(invoice.signatureDate)}
             />
           ) : (
             <div className="mt-6 rounded-2xl bg-line px-4 py-3 text-center text-sm text-muted">

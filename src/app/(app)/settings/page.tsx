@@ -1,12 +1,23 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
+import { PaymentReminderSettingsForm } from "@/components/payment-reminder-settings-form";
+
+function parseDaysList(value: string): number[] {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((n) => Number.isFinite(n)) : [];
+  } catch {
+    return [];
+  }
+}
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
-  const [clientCount, productCount] = await Promise.all([
+  const [clientCount, productCount, reminderSettings] = await Promise.all([
     prisma.client.count({ where: { userId: user.id } }),
     prisma.product.count({ where: { userId: user.id, active: true } }),
+    prisma.paymentReminderSettings.findUnique({ where: { userId: user.id } }),
   ]);
 
   return (
@@ -27,6 +38,20 @@ export default async function SettingsPage() {
             <span className="text-muted">Stripe status</span>
             <span className="font-medium">{user.onboardingStatus.replace("_", " ")}</span>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-line bg-card p-5">
+        <h2 className="font-display text-xl font-bold">Payment reminders</h2>
+        <p className="mt-1 text-sm text-muted">
+          Send an automatic email to clients before or after an invoice is due.
+        </p>
+        <div className="mt-4">
+          <PaymentReminderSettingsForm
+            initialEnabled={reminderSettings?.isEnabled ?? false}
+            initialDaysBefore={parseDaysList(reminderSettings?.daysBeforeDue ?? "[]")}
+            initialDaysAfter={parseDaysList(reminderSettings?.daysAfterDue ?? "[]")}
+          />
         </div>
       </section>
 
